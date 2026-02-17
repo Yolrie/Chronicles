@@ -4,6 +4,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
+import CharacterCreateScreen from '../screens/character/CharacterCreateScreen';
 
 // Écrans d'authentification
 import LoginScreen from '../screens/auth/LoginScreen';
@@ -64,3 +65,12 @@ export default function AppNavigator() {
     </NavigationContainer>
   );
 }
+
+<MainStack.Screen 
+  name="CharacterCreate" 
+  component={CharacterCreateScreen}
+  options={{ 
+    title: 'Créer un personnage',
+    headerShown: true,
+  }}
+/>
