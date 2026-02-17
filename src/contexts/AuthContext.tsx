@@ -98,54 +98,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Fonction d'inscription
-  async function signUp(email: string, password: string, username: string) {
-    try {
-      setIsLoading(true);
+async function signUp(email: string, password: string, username: string) {
+  try {
+    setIsLoading(true);
 
-      // 1. Crée le compte auth
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+    // 1. Créer le compte auth (sans attendre la confirmation email)
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: undefined, // Pas de redirection email
+      },
+    });
+
+    if (authError) throw authError;
+    if (!authData.user) throw new Error('Aucun utilisateur créé');
+
+    // 2. Créer le profil manuellement (contourne le trigger)
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: authData.user.id,
+        username: username,
+        role: 'player',
       });
 
-      if (error) throw error;
-
-      // 2. Crée le profil
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            username,
-            role: 'player',
-          });
-
-        if (profileError) throw profileError;
-
-        // 3. Récupère le profil créé
-        const { data: profile, error: fetchError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        if (fetchError) throw fetchError;
-
-        setUser({
-          id: profile.id,
-          email: data.user.email!,
-          username: profile.username,
-          avatar_url: profile.avatar_url,
-          role: profile.role,
-        });
+    if (profileError) {
+      console.error('Erreur création profil:', profileError);
+      // Ne bloque pas si le profil existe déjà (trigger l'a peut-être créé)
+      if (!profileError.message.includes('duplicate')) {
+        throw profileError;
       }
-    } catch (error: any) {
-      console.error('Erreur signUp:', error.message);
-      throw error;
-    } finally {
-      setIsLoading(false);
     }
+
+    // 3. Se connecter automatiquement
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) throw signInError;
+
+    // 4. Récupérer le profil
+    const { data: profile, error: fetchError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    setUser({
+      id: profile.id,
+      email: authData.user.email!,
+      username: profile.username,
+      avatar_url: profile.avatar_url,
+      role: profile.role,
+    });
+
+  } catch (error: any) {
+    console.error('Erreur signUp complète:', error);
+    throw error;
+  } finally {
+    setIsLoading(false);
   }
+}
+
 
   // Fonction de déconnexion
   async function signOut() {
