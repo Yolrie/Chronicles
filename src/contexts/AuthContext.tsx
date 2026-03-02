@@ -1,186 +1,120 @@
 // src/contexts/AuthContext.tsx
 
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { supabase } from '../services/supabase';
-import { User, AuthState } from '../types/auth.types';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ApiUser, login, register } from '../services/api';
 
-// Interface de ce qu'expose le Context
-interface AuthContextType extends AuthState {
+export interface AuthUser {
+  id: number;
+  email: string;
+  username: string;
+}
+
+interface AuthContextValue {
+  user: AuthUser | null;
+  isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, username: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
-// Créer le Context
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-// Provider
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+const STORAGE_KEY = '@hsc_user';
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Au chargement : vérifie si un user est déjà connecté
+  // Au démarrage, essayer de recharger l'utilisateur depuis le stockage local
   useEffect(() => {
-    checkUser();
+    loadStoredUser();
   }, []);
 
-  // Fonction pour vérifier la session existante
-  async function checkUser() {
+  async function loadStoredUser() {
     try {
       setIsLoading(true);
-      
-      // Récupère la session Supabase
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        // Récupère le profil complet depuis la BDD
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (error) throw error;
-        
-        // Met à jour le state avec l'utilisateur
-        setUser({
-          id: profile.id,
-          email: session.user.email!,
-          username: profile.username,
-          avatar_url: profile.avatar_url,
-          role: profile.role,
-        });
+      const json = await AsyncStorage.getItem(STORAGE_KEY);
+      if (json) {
+        const parsed: AuthUser = JSON.parse(json);
+        setUser(parsed);
       }
-    } catch (error) {
-      console.error('Erreur checkUser:', error);
+    } catch (e) {
+      console.warn('Erreur chargement utilisateur local', e);
     } finally {
       setIsLoading(false);
     }
   }
 
-  // Fonction de connexion
+  async function persistUser(u: AuthUser | null) {
+    if (u) {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+    } else {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+    }
+  }
+
+  // Connexion
   async function signIn(email: string, password: string) {
     try {
       setIsLoading(true);
-
-      // Authentifie avec Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      // Récupère le profil
-      if (data.user) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        if (profileError) throw profileError;
-
-        setUser({
-          id: profile.id,
-          email: data.user.email!,
-          username: profile.username,
-          avatar_url: profile.avatar_url,
-          role: profile.role,
-        });
-      }
+      const apiUser: ApiUser = await login(email, password);
+      const authUser: AuthUser = {
+        id: apiUser.id,
+        email: apiUser.email,
+        username: apiUser.username,
+      };
+      setUser(authUser);
+      await persistUser(authUser);
     } catch (error: any) {
-      console.error('Erreur signIn:', error.message);
-      throw error; // Relance l'erreur pour que l'UI puisse l'afficher
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  // Fonction d'inscription
-async function signUp(email: string, password: string, username: string) {
-  try {
-    setIsLoading(true);
-
-    // 1. Créer le compte auth (sans attendre la confirmation email)
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: undefined, // Pas de redirection email
-      },
-    });
-
-    if (authError) throw authError;
-    if (!authData.user) throw new Error('Aucun utilisateur créé');
-
-    // 2. Créer le profil manuellement (contourne le trigger)
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert({
-        id: authData.user.id,
-        username: username,
-        role: 'player',
-      });
-
-    if (profileError) {
-      console.error('Erreur création profil:', profileError);
-      // Ne bloque pas si le profil existe déjà (trigger l'a peut-être créé)
-      if (!profileError.message.includes('duplicate')) {
-        throw profileError;
-      }
-    }
-
-    // 3. Se connecter automatiquement
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (signInError) throw signInError;
-
-    // 4. Récupérer le profil
-    const { data: profile, error: fetchError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authData.user.id)
-      .single();
-
-    if (fetchError) throw fetchError;
-
-    setUser({
-      id: profile.id,
-      email: authData.user.email!,
-      username: profile.username,
-      avatar_url: profile.avatar_url,
-      role: profile.role,
-    });
-
-  } catch (error: any) {
-    console.error('Erreur signUp complète:', error);
-    throw error;
-  } finally {
-    setIsLoading(false);
-  }
-}
-
-
-  // Fonction de déconnexion
-  async function signOut() {
-    try {
-      setIsLoading(true);
-      await supabase.auth.signOut();
-      setUser(null);
-    } catch (error: any) {
-      console.error('Erreur signOut:', error.message);
+      console.error('Erreur signIn:', error);
       throw error;
     } finally {
       setIsLoading(false);
     }
   }
 
-  // Valeur partagée
-  const value = {
+  // Inscription
+  async function signUp(email: string, password: string, username: string) {
+    try {
+      setIsLoading(true);
+      const apiUser: ApiUser = await register(email, password, username);
+      const authUser: AuthUser = {
+        id: apiUser.id,
+        email: apiUser.email,
+        username: apiUser.username,
+      };
+      setUser(authUser);
+      await persistUser(authUser);
+    } catch (error: any) {
+      console.error('Erreur signUp:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  // Déconnexion
+  async function signOut() {
+    try {
+      setIsLoading(true);
+      setUser(null);
+      await persistUser(null);
+    } catch (error) {
+      console.error('Erreur signOut:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const value: AuthContextValue = {
     user,
     isLoading,
     signIn,
@@ -191,13 +125,10 @@ async function signUp(email: string, password: string, username: string) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Hook custom
-export function useAuth() {
-  const context = useContext(AuthContext);
-  
-  if (context === undefined) {
+export function useAuth(): AuthContextValue {
+  const ctx = useContext(AuthContext);
+  if (!ctx) {
     throw new Error('useAuth doit être utilisé dans un AuthProvider');
   }
-  
-  return context;
+  return ctx;
 }

@@ -1,0 +1,128 @@
+1. Documentation du projet HSC (état actuel)
+1.1. Objectif
+Application React Native / Expo pour gérer des personnages de JDR (type D&D 5e) :
+
+Authentification (login / inscription).
+
+Liste des personnages d’un utilisateur.
+
+Création de personnage via formulaire multi‑étapes.
+
+Données stockées dans une API locale (JSON Server) pendant la phase MVP.
+
+1.2. Stack technique
+Mobile : React Native + Expo.
+
+Langage : TypeScript.
+
+Navigation : @react-navigation/native + @react-navigation/native-stack.
+
+State global auth : AuthContext (React Context).
+
+UI réutilisable : composants Input, Button, etc.
+
+Backend (MVP) : JSON Server local (db.json).
+
+2. Structure du projet
+Dossiers principaux :
+
+App.tsx
+Point d’entrée Expo. En prod, wrappe AuthProvider + AppNavigator.
+
+src/contexts/AuthContext.tsx
+Gère :
+
+l’utilisateur courant (user),
+
+le chargement (isLoading),
+
+les fonctions signIn, signUp, signOut.
+
+src/navigation/AppNavigator.tsx
+Définit la navigation :
+
+AuthStack : Login, Register
+
+MainStack : CharacterList, CharacterCreate, CharacterDetail (à venir)
+
+src/screens/auth/LoginScreen.tsx
+Formulaire de connexion (email + password, bouton vers Register).
+
+src/screens/auth/RegisterScreen.tsx
+Formulaire d’inscription (pseudo, email, mot de passe, confirmation).
+
+src/screens/character/CharacterListScreen.tsx
+Affiche la liste des personnages de l’utilisateur, bouton “Créer un personnage”, bouton “Déconnexion”.
+
+src/screens/character/CharacterCreateScreen.tsx
+Conteneur du formulaire multi‑étapes (5 steps), state formData, navigation entre les étapes, appel de création de personnage.
+
+src/components/character/Step1BasicInfo.tsx
+Étape 1 : nom, race, classe, historique.
+
+src/components/character/Step2Abilities.tsx
+Étape 2 : caractéristiques (Force, Dex, etc.) avec +/‑ et calcul de modificateur.
+
+src/types/character.types.ts
+Types TypeScript :
+
+Character, CharacterFormData, Abilities, Equipment, Personality
+
+constantes : RACES, CLASSES, BACKGROUNDS, SKILLS.
+
+src/services/characters.service.ts
+(va être adapté) Fonctions pour créer / récupérer les personnages via l’API.
+
+3. Nouvelle architecture backend (Option 1 – JSON Server)
+3.1. Concept
+On remplace Supabase par une API REST locale via JSON Server :
+
+Fichier db.json stocke les données.
+
+JSON Server expose des routes HTTP :
+
+GET /users, POST /users
+
+GET /characters, POST /characters, etc.
+
+Cela permet de garder :
+
+la même logique “service” (login, register, getCharacters, createCharacter),
+
+la même architecture React Native côté front.
+
+4. Mise en place de l’API locale
+4.1. Installation de JSON Server
+À noter dans la doc (et à garder dans un README) :
+
+bash
+npm install -g json-server
+4.2. Fichier db.json
+À créer à la racine du projet :
+
+json
+{
+  "users": [
+    {
+      "id": 1,
+      "email": "test@test.com",
+      "password": "test1234",
+      "username": "aragorn"
+    }
+  ],
+  "characters": []
+}
+
+4.3. Commande pour lancer l’API locale
+À lancer dans un terminal (et à noter dans la doc) :
+
+bash
+json-server --watch db.json --port 3001
+Base URL : http://localhost:3001
+
+Endpoint utilisateurs : http://localhost:3001/users
+
+Endpoint personnages : http://localhost:3001/characters
+
+C’est cette commande que tu retrouveras dans la doc (README) pour démarrer ton backend local.
+
