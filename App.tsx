@@ -14,6 +14,12 @@ export default function App() {
           }}
           title="Aller à Home Screen"
       />
+      <Button 
+          onPress={() =>{
+              console.log('You tapped the button Login screen!');
+          }}
+          title="Aller à Login Screen"
+      />
     </View>
   );
 }
