@@ -1,13 +1,19 @@
 // App.tsx
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Button } from 'react-native';
 
 export default function App() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>HSC - V2</Text>
       <Text>Première version propre du projet.</Text>
+      <Button 
+          onPress={() =>{
+              console.log('You tapped the button Home screen!');
+          }}
+          title="Aller à Home Screen"
+      />
     </View>
   );
 }
