@@ -1,31 +1,29 @@
+// HomeScreen.tsx
+
 import React from 'react';
-import { View, Text, StyleSheet, Button } from 'react-native';
+import { View, Text, Button } from 'react-native';
+import commonStyles from '../styles/common';
 
-const HomeScreen = () => {
-    return (
-        <View style={styles.container}>
-            <Text style={styles.title}>HomeScreen</Text>
-            <Button 
-                onPress={() =>{
-                    console.log('You tapped the button login screen!');
-                }}
-                title="Aller à Login Screen"
-            />
+const HomeScreen = ({ navigation }) => {
+  return (
+    <View style={commonStyles.screen}>
+      <View style={commonStyles.card}>
+        <Text style={commonStyles.title}>HomeScreen</Text>
+        <Text style={commonStyles.subtitle}>
+          Bienvenue sur l’écran d’accueil
+        </Text>
+
+        <View style={commonStyles.actions}>
+          <Button
+            onPress={() => {
+              navigation.navigate('Login');
+            }}
+            title="Aller à Login Screen"
+          />
         </View>
-    )
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 16,
-  },
-});
-
+      </View>
+    </View>
+  );
+};
 
 export default HomeScreen;
