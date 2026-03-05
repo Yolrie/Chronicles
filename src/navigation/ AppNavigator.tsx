@@ -23,16 +23,13 @@ const AppNavigator = () => {
             component={LoginScreen} 
             options={{ title: 'Connexion'}}
             />}
-      </Stack.Navigator>
-
-      <Stack.Navigator initialRouteName="Home">
         {<Stack.Screen 
             name="Home" 
             component={HomeScreen} 
             options={{ title: 'Accueil' }}
             />}
-      </Stack.Navigator>  
-
+      </Stack.Navigator>
+      
     </NavigationContainer>
   );
 };
