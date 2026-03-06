@@ -1,31 +1,100 @@
+// HomeScreen.tsx
+
 import React from 'react';
-import { View, Text, StyleSheet, Button } from 'react-native';
+import { View, Text, Button } from 'react-native';
+import commonStyles from '../styles/common';
 
-const HomeScreen = () => {
-    return (
-        <View style={styles.container}>
-            <Text style={styles.title}>HomeScreen</Text>
-            <Button 
-                onPress={() =>{
-                    console.log('You tapped the button login screen!');
-                }}
-                title="Aller à Login Screen"
-            />
+const HomeScreen = ({ navigation, route }) => {
+  const { username } = route.params || {};
+
+  const [characters, setCharacters] = React.useState([]);
+
+  return (
+    <View style={commonStyles.screen}>
+      <View style={commonStyles.card}>
+        {/* Petit badge en haut */}
+        <View style={commonStyles.pill}>
+          <Text style={commonStyles.pillText}>Tableau de bord</Text>
         </View>
-    )
-}
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 16,
-  },
-});
+        {/* Titre + bienvenue */}
+        <Text style={commonStyles.title}>Mes personnages</Text>
 
+        {username && (
+          <Text style={commonStyles.subtitle}>
+            Bienvenue, {username}. Prépare tes fiches de héros.
+          </Text>
+        )}
+
+        {!username && (
+          <Text style={commonStyles.subtitle}>
+            Crée et gère tes personnages de jeu de rôle depuis un seul endroit.
+          </Text>
+        )}
+
+        {/* Statistiques rapides */}
+        <Text style={commonStyles.sectionHeader}>Aperçu rapide</Text>
+        <View style={commonStyles.statRow}>
+          <View style={commonStyles.statCard}>
+            <Text style={commonStyles.statLabel}>Personnages créés</Text>
+            <Text style={commonStyles.statValue}>
+              {characters.length}
+            </Text>
+          </View>
+          <View style={commonStyles.statCard}>
+            <Text style={commonStyles.statLabel}>Dernière activité</Text>
+            <Text style={commonStyles.statValue}>—</Text>
+          </View>
+        </View>
+
+        {/* Info état de la liste */}
+        <View style={{ marginTop: 16 }}>
+          {characters.length === 0 ? (
+            <View style={commonStyles.badge}>
+              <Text style={commonStyles.badgeText}>
+                Tu n’as encore créé aucun personnage.
+              </Text>
+            </View>
+          ) : (
+            <Text style={commonStyles.subtitle}>
+              Tu as {characters.length} personnage(s) prêt(s) pour l’aventure.
+            </Text>
+          )}
+        </View>
+
+        {/* Actions */}
+        <View style={commonStyles.actions}>
+          <View style={commonStyles.actionsRow}>
+            <View style={{ flex: 1 }}>
+              <Button
+                onPress={() => {
+                  navigation.navigate('CharacterForm');
+                }}
+                title="Créer un personnage"
+              />
+            </View>
+
+            <View style={{ flex: 1 }}>
+              <Button
+                onPress={() => {
+                  // Plus tard : aller vers une future liste détaillée
+                  navigation.navigate('CharacterForm');
+                }}
+                title="Voir la fiche type"
+              />
+            </View>
+          </View>
+
+          <Button
+            onPress={() => {
+              navigation.navigate('Login');
+            }}
+            title="Retour à l’écran de connexion"
+          />
+        </View>
+      </View>
+    </View>
+  );
+};
 
 export default HomeScreen;
