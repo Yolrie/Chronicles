@@ -5,10 +5,16 @@ import {NavigationContainer} from '@react-navigation/native';
 
 import HomeScreen from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
+import CharacterFormScreen from '../screens/CharacterFormScreen';
 
 type RootStackParamList = {
   Login: undefined;
-  Home: undefined;
+  Home: { 
+    username : string,
+    email: string,
+    password: string
+   };
+  CharacterForm: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -27,6 +33,11 @@ const AppNavigator = () => {
             name="Home" 
             component={HomeScreen} 
             options={{ title: 'Accueil' }}
+            />}
+        {<Stack.Screen 
+            name="CharacterForm" 
+            component={CharacterFormScreen} 
+            options={{ title: 'Nouveau personnage' }}
             />}
       </Stack.Navigator>
       
