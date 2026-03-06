@@ -63,16 +63,7 @@ const LoginScreen = ({ navigation }) => {
             disabled={!isValid}
           />
         </View>
-
-            <View style={commonStyles.actions}>
-          <Button
-            onPress={() => {
-              navigation.navigate('Home');
-            }}
-            title="Admin"
-          />
-        </View>
-
+        
       </View>
     </View>
   );
