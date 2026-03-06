@@ -30,7 +30,6 @@ const LoginScreen = ({ navigation }) => {
             placeholderTextColor="#9ca3af"
             value={username}
             onChangeText={setUsername}
-            style={{ color: '#e5e7eb' }}
         />
 
         <TextInput
@@ -38,7 +37,6 @@ const LoginScreen = ({ navigation }) => {
             placeholderTextColor="#9ca3af"
             value={email}
             onChangeText={setEmail}
-            style={{ color: '#e5e7eb' }}
         />
 
         <TextInput
@@ -46,7 +44,6 @@ const LoginScreen = ({ navigation }) => {
             placeholderTextColor="#9ca3af"
             value={password}
             onChangeText={setPassword}
-            style={{ color: '#e5e7eb' }}
         />
 
         <View style={commonStyles.actions}>
