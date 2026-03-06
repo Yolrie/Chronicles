@@ -13,6 +13,11 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
 
+  const isValid =
+  username.trim().length > 0 &&
+  email.trim().length > 0 &&
+  password.trim().length > 0;
+
   return (
     <View style={commonStyles.screen}>
       <View style={commonStyles.card}>
@@ -30,6 +35,7 @@ const LoginScreen = ({ navigation }) => {
             placeholderTextColor="#9ca3af"
             value={username}
             onChangeText={setUsername}
+            style={commonStyles.input}
         />
 
         <TextInput
@@ -37,6 +43,7 @@ const LoginScreen = ({ navigation }) => {
             placeholderTextColor="#9ca3af"
             value={email}
             onChangeText={setEmail}
+            style={commonStyles.input}
         />
 
         <TextInput
@@ -44,16 +51,28 @@ const LoginScreen = ({ navigation }) => {
             placeholderTextColor="#9ca3af"
             value={password}
             onChangeText={setPassword}
+            style={commonStyles.input}
         />
 
         <View style={commonStyles.actions}>
           <Button
             onPress={() => {
-              navigation.navigate('Home');
+              navigation.navigate('Home', { username });
             }}
             title="Enregistrer"
+            disabled={!isValid}
           />
         </View>
+
+            <View style={commonStyles.actions}>
+          <Button
+            onPress={() => {
+              navigation.navigate('Home');
+            }}
+            title="Admin"
+          />
+        </View>
+
       </View>
     </View>
   );
