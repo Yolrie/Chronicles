@@ -41,6 +41,16 @@ const commonStyles = StyleSheet.create({
   actions: {
     marginTop: 12,
   },
+  input: {
+    width: '100%',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(148, 163, 184, 0.6)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: '#e5e7eb',
+    marginBottom: 12,
+  },
 });
 
 export default commonStyles;
