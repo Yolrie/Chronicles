@@ -11,26 +11,79 @@ const HomeScreen = ({ navigation, route }) => {
 
   return (
     <View style={commonStyles.screen}>
-      <View className={commonStyles.card}>
+      <View style={commonStyles.card}>
+        {/* Petit badge en haut */}
+        <View style={commonStyles.pill}>
+          <Text style={commonStyles.pillText}>Tableau de bord</Text>
+        </View>
+
+        {/* Titre + bienvenue */}
         <Text style={commonStyles.title}>Mes personnages</Text>
 
         {username && (
           <Text style={commonStyles.subtitle}>
-            Bienvenue, {username}
+            Bienvenue, {username}. Prépare tes fiches de héros.
           </Text>
         )}
 
-        <Text style={commonStyles.subtitle}>
-          Tu as {characters.length} personnage(s) créé(s).
-        </Text>
+        {!username && (
+          <Text style={commonStyles.subtitle}>
+            Crée et gère tes personnages de jeu de rôle depuis un seul endroit.
+          </Text>
+        )}
 
+        {/* Statistiques rapides */}
+        <Text style={commonStyles.sectionHeader}>Aperçu rapide</Text>
+        <View style={commonStyles.statRow}>
+          <View style={commonStyles.statCard}>
+            <Text style={commonStyles.statLabel}>Personnages créés</Text>
+            <Text style={commonStyles.statValue}>
+              {characters.length}
+            </Text>
+          </View>
+          <View style={commonStyles.statCard}>
+            <Text style={commonStyles.statLabel}>Dernière activité</Text>
+            <Text style={commonStyles.statValue}>—</Text>
+          </View>
+        </View>
+
+        {/* Info état de la liste */}
+        <View style={{ marginTop: 16 }}>
+          {characters.length === 0 ? (
+            <View style={commonStyles.badge}>
+              <Text style={commonStyles.badgeText}>
+                Tu n’as encore créé aucun personnage.
+              </Text>
+            </View>
+          ) : (
+            <Text style={commonStyles.subtitle}>
+              Tu as {characters.length} personnage(s) prêt(s) pour l’aventure.
+            </Text>
+          )}
+        </View>
+
+        {/* Actions */}
         <View style={commonStyles.actions}>
-          <Button
-            onPress={() => {
-              navigation.navigate('CharacterForm');
-            }}
-            title="Créer un personnage"
-          />
+          <View style={commonStyles.actionsRow}>
+            <View style={{ flex: 1 }}>
+              <Button
+                onPress={() => {
+                  navigation.navigate('CharacterForm');
+                }}
+                title="Créer un personnage"
+              />
+            </View>
+
+            <View style={{ flex: 1 }}>
+              <Button
+                onPress={() => {
+                  // Plus tard : aller vers une future liste détaillée
+                  navigation.navigate('CharacterForm');
+                }}
+                title="Voir la fiche type"
+              />
+            </View>
+          </View>
 
           <Button
             onPress={() => {
