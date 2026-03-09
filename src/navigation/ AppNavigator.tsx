@@ -6,6 +6,7 @@ import {NavigationContainer} from '@react-navigation/native';
 import HomeScreen from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import CharacterFormScreen from '../screens/CharacterFormScreen';
+import CharactersForm from '../form/CharactersForm';
 
 type RootStackParamList = {
   Login: undefined;

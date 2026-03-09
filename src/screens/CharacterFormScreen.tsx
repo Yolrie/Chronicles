@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, Button } from 'react-native';
+import { View, Text, TextInput, Button, Alert } from 'react-native';
 import commonStyles from '../styles/common';
 
 const CharacterFormScreen = ({ navigation }) => {
@@ -7,14 +7,44 @@ const CharacterFormScreen = ({ navigation }) => {
   const [charClass, setCharClass] = React.useState('');
   const [race, setRace] = React.useState('');
 
+  const handleSave = () => {
+    if (!name.trim()) {
+      Alert.alert('Missing name', 'Please enter a character name.');
+      return;
+    }
+
+    const newCharacter = {
+      id: Date.now(),
+      name: name.trim(),
+      class: charClass.trim(),
+      race: race.trim(),
+    };
+
+    console.log('New character:', newCharacter);
+
+    Alert.alert(
+      'Character created',
+      'Your character has been created (not yet linked to the Home list).',
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            navigation.navigate('Home');
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <View style={commonStyles.screen}>
       <View style={commonStyles.card}>
         <Text style={commonStyles.title}>Créer un personnage</Text>
         <Text style={commonStyles.subtitle}>
-          Cette fonctionnalité est en cours de développement.
+          Fill in your character&apos;s basic information. Saving to the Home list is not implemented yet.
         </Text>
+
+        <Text style={commonStyles.sectionHeader}>Identité</Text>
 
         <TextInput
           placeholder="Nom du personnage"
@@ -28,7 +58,7 @@ const CharacterFormScreen = ({ navigation }) => {
           placeholder="Classe"
           placeholderTextColor="#9ca3af"
           value={charClass}
-         onChangeText={setCharClass}
+          onChangeText={setCharClass}
           style={commonStyles.input}
         />
 
@@ -39,8 +69,13 @@ const CharacterFormScreen = ({ navigation }) => {
           onChangeText={setRace}
           style={commonStyles.input}
         />
-        
+
         <View style={commonStyles.actions}>
+          <Button
+            onPress={handleSave}
+            title="Enregistrer (temporaire)"
+          />
+
           <Button
             onPress={() => {
               navigation.navigate('Home');
@@ -48,10 +83,9 @@ const CharacterFormScreen = ({ navigation }) => {
             title="Retour à l'écran d'accueil"
           />
         </View>
-        
       </View>
     </View>
   );
-}
+};
 
 export default CharacterFormScreen;
