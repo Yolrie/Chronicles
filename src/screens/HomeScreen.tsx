@@ -3,17 +3,13 @@
 import React from 'react';
 import { View, Text, Button } from 'react-native';
 import commonStyles from '../styles/common';
+import { useCharacters } from '../context/CharactersContext';
+
 
 const HomeScreen = ({ navigation, route }) => {
   const { username } = route.params || {};
 
-  const [characters, setCharacters] = React.useState([
-    {
-      id: 1,
-      name: 'Aragorn',
-      class: 'Rôdeur',
-    }
-  ]);
+  const { characters } = useCharacters();
 
   return (
     <View style={commonStyles.screen}>
@@ -53,7 +49,7 @@ const HomeScreen = ({ navigation, route }) => {
           </View>
         </View>
 
-        {/* Info état de la liste */}
+        {/* Liste des personnages */}
         <View style={{ marginTop: 16 }}>
           {characters.length === 0 ? (
             <View style={commonStyles.badge}>
@@ -63,10 +59,52 @@ const HomeScreen = ({ navigation, route }) => {
             </View>
           ) : (
             <View>
+              {/* En-têtes du tableau */}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  paddingVertical: 8,
+                  borderBottomWidth: 1,
+                  borderColor: 'rgba(148, 163, 184, 0.4)',
+                }}
+              >
+                <Text style={[commonStyles.statLabel, { flex: 2 }]}>Nom</Text>
+                <Text style={[commonStyles.statLabel, { flex: 2 }]}>Classe</Text>
+                <Text style={[commonStyles.statLabel, { flex: 2 }]}>Race</Text>
+                <Text style={[commonStyles.statLabel, { flex: 1, textAlign: 'right' }]}>
+                  Actions
+                </Text>
+              </View>
+
+              {/* Lignes du tableau */}
               {characters.map((c) => (
-                <View key={c.id} style={commonStyles.statCard}>
-                  <Text style={commonStyles.statLabel}>{c.name}</Text>
-                  <Text style={commonStyles.statValue}>{c.class}</Text>
+                <View
+                  key={c.id}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingVertical: 8,
+                    borderBottomWidth: 1,
+                    borderColor: 'rgba(31, 41, 55, 0.7)',
+                  }}
+                >
+                  <Text style={[commonStyles.statValue, { flex: 2 }]}>
+                    {c.name}
+                  </Text>
+                  <Text style={[commonStyles.statLabel, { flex: 2 }]}>
+                    {c.class}
+                  </Text>
+                  <Text style={[commonStyles.statLabel, { flex: 2 }]}>
+                    {c.race || '—'}
+                  </Text>
+                  <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                    <Button
+                      title="Modifier"
+                      onPress={() => {
+                        navigation.navigate('CharacterForm', { characterId: c.id });
+                      }}
+                    />
+                  </View>
                 </View>
               ))}
             </View>
