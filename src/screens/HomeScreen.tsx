@@ -7,7 +7,13 @@ import commonStyles from '../styles/common';
 const HomeScreen = ({ navigation, route }) => {
   const { username } = route.params || {};
 
-  const [characters, setCharacters] = React.useState([]);
+  const [characters, setCharacters] = React.useState([
+    {
+      id: 1,
+      name: 'Aragorn',
+      class: 'Rôdeur',
+    }
+  ]);
 
   return (
     <View style={commonStyles.screen}>
@@ -56,9 +62,14 @@ const HomeScreen = ({ navigation, route }) => {
               </Text>
             </View>
           ) : (
-            <Text style={commonStyles.subtitle}>
-              Tu as {characters.length} personnage(s) prêt(s) pour l’aventure.
-            </Text>
+            <View>
+              {characters.map((c) => (
+                <View key={c.id} style={commonStyles.statCard}>
+                  <Text style={commonStyles.statLabel}>{c.name}</Text>
+                  <Text style={commonStyles.statValue}>{c.class}</Text>
+                </View>
+              ))}
+            </View>
           )}
         </View>
 
