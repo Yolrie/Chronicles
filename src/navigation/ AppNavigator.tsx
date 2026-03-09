@@ -6,7 +6,8 @@ import {NavigationContainer} from '@react-navigation/native';
 import HomeScreen from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import CharacterFormScreen from '../screens/CharacterFormScreen';
-import CharactersForm from '../form/CharactersForm';
+import { CharactersProvider } from '../context/CharactersContext';
+
 
 type RootStackParamList = {
   Login: undefined;
@@ -22,27 +23,27 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator = () => {
   return (
-    <NavigationContainer>
-
-      <Stack.Navigator initialRouteName="Login">
-        {<Stack.Screen 
+    <CharactersProvider>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Login">
+          <Stack.Screen 
             name="Login" 
             component={LoginScreen} 
             options={{ title: 'Connexion'}}
-            />}
-        {<Stack.Screen 
+          />
+          <Stack.Screen 
             name="Home" 
             component={HomeScreen} 
             options={{ title: 'Accueil' }}
-            />}
-        {<Stack.Screen 
+          />
+          <Stack.Screen 
             name="CharacterForm" 
             component={CharacterFormScreen} 
             options={{ title: 'Nouveau personnage' }}
-            />}
-      </Stack.Navigator>
-      
-    </NavigationContainer>
+          />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </CharactersProvider>
   );
 };
 
