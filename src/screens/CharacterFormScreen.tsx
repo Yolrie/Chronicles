@@ -1,11 +1,27 @@
 import React from 'react';
 import { View, Text, TextInput, Button, Alert } from 'react-native';
 import commonStyles from '../styles/common';
+import { useCharacters } from '../context/CharactersContext';
 
-const CharacterFormScreen = ({ navigation }) => {
+const CharacterFormScreen = ({ navigation, route }) => {
   const [name, setName] = React.useState('');
   const [charClass, setCharClass] = React.useState('');
   const [race, setRace] = React.useState('');
+
+  const characterId = route?.params?.characterId;
+
+  const { characters, addCharacter, updateCharacter } = useCharacters();
+
+  React.useEffect(() => {
+    if (!characterId) return;
+
+    const existing = characters.find(c => c.id === characterId);
+    if (!existing) return;
+
+    setName(existing.name);
+    setCharClass(existing.class);
+    setRace(existing.race);
+  }, [characterId, characters]);
 
   const handleSave = () => {
     if (!name.trim()) {
@@ -13,35 +29,43 @@ const CharacterFormScreen = ({ navigation }) => {
       return;
     }
 
-    const newCharacter = {
-      id: Date.now(),
+    const baseCharacter = {
+      id: characterId ?? Date.now(),
       name: name.trim(),
       class: charClass.trim(),
       race: race.trim(),
     };
 
-    console.log('New character:', newCharacter);
+    if (characterId) {
+      updateCharacter(baseCharacter);
+    } else {
+      addCharacter(baseCharacter);
+    }
 
     Alert.alert(
-      'Character created',
-      'Your character has been created (not yet linked to the Home list).',
+      characterId ? 'Character updated' : 'Character created',
+      characterId
+        ? 'Your character has been updated.'
+        : 'Your character has been added to the list.',
       [
         {
           text: 'OK',
           onPress: () => {
-            navigation.navigate('Home');
+            navigation.goBack();
           },
         },
-      ]
+      ],
     );
   };
 
   return (
     <View style={commonStyles.screen}>
       <View style={commonStyles.card}>
-        <Text style={commonStyles.title}>Créer un personnage</Text>
+        <Text style={commonStyles.title}>
+          {characterId ? 'Modifier le personnage' : 'Créer un personnage'}
+        </Text>
         <Text style={commonStyles.subtitle}>
-          Fill in your character&apos;s basic information. Saving to the Home list is not implemented yet.
+          Fill in your character&apos;s basic information.
         </Text>
 
         <Text style={commonStyles.sectionHeader}>Identité</Text>
@@ -73,12 +97,12 @@ const CharacterFormScreen = ({ navigation }) => {
         <View style={commonStyles.actions}>
           <Button
             onPress={handleSave}
-            title="Enregistrer (temporaire)"
+            title={characterId ? 'Mettre à jour' : 'Enregistrer'}
           />
 
           <Button
             onPress={() => {
-              navigation.navigate('Home');
+              navigation.goBack();
             }}
             title="Retour à l'écran d'accueil"
           />
