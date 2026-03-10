@@ -8,9 +8,10 @@ const CharacterFormScreen = ({ navigation, route }) => {
   const [charClass, setCharClass] = React.useState('');
   const [race, setRace] = React.useState('');
 
-  const characterId = route?.params?.characterId;
+  const characterId = route?.params?.characterId as number | undefined;
 
-  const { characters, addCharacter, updateCharacter } = useCharacters();
+  const { characters, addCharacter, updateCharacter, deleteCharacter } =
+    useCharacters();
 
   React.useEffect(() => {
     if (!characterId) return;
@@ -51,6 +52,26 @@ const CharacterFormScreen = ({ navigation, route }) => {
         {
           text: 'OK',
           onPress: () => {
+            navigation.goBack();
+          },
+        },
+      ],
+    );
+  };
+
+  const handleDelete = () => {
+    if (!characterId) return;
+
+    Alert.alert(
+      'Supprimer le personnage',
+      'Cette action est définitive. Continuer ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: () => {
+            deleteCharacter(characterId);
             navigation.goBack();
           },
         },
@@ -99,6 +120,14 @@ const CharacterFormScreen = ({ navigation, route }) => {
             onPress={handleSave}
             title={characterId ? 'Mettre à jour' : 'Enregistrer'}
           />
+
+          {characterId && (
+            <Button
+              onPress={handleDelete}
+              color="#b91c1c"
+              title="Supprimer le personnage"
+            />
+          )}
 
           <Button
             onPress={() => {
