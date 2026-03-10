@@ -1,21 +1,26 @@
+// src/screens/CharacterFormScreen.tsx
+
 import React from 'react';
 import { View, Text, TextInput, Button, Alert } from 'react-native';
 import commonStyles from '../styles/common';
 import { useCharacters } from '../context/CharactersContext';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
-const CharacterFormScreen = ({ navigation, route }) => {
+type Props = NativeStackScreenProps<RootStackParamList, 'CharacterForm'>;
+
+const CharacterFormScreen: React.FC<Props> = ({ navigation, route }) => {
   const [name, setName] = React.useState('');
   const [charClass, setCharClass] = React.useState('');
   const [race, setRace] = React.useState('');
 
-  const characterId = route?.params?.characterId as number | undefined;
-
+  const characterId = route?.params?.characterId;
   const { characters, addCharacter, updateCharacter, deleteCharacter } =
     useCharacters();
 
+  // Pré-remplissage si édition
   React.useEffect(() => {
     if (!characterId) return;
-
     const existing = characters.find(c => c.id === characterId);
     if (!existing) return;
 
@@ -63,12 +68,12 @@ const CharacterFormScreen = ({ navigation, route }) => {
     if (!characterId) return;
 
     Alert.alert(
-      'Supprimer le personnage',
-      'Cette action est définitive. Continuer ?',
+      'Delete character',
+      'This action cannot be undone. Continue?',
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: 'Delete',
           style: 'destructive',
           onPress: () => {
             deleteCharacter(characterId);
@@ -82,17 +87,26 @@ const CharacterFormScreen = ({ navigation, route }) => {
   return (
     <View style={commonStyles.screen}>
       <View style={commonStyles.card}>
+        {/* Badge / contexte */}
+        <View style={commonStyles.pill}>
+          <Text style={commonStyles.pillText}>
+            {characterId ? 'Edit character' : 'New character'}
+          </Text>
+        </View>
+
+        {/* Titre */}
         <Text style={commonStyles.title}>
-          {characterId ? 'Modifier le personnage' : 'Créer un personnage'}
+          {characterId ? 'Character sheet' : 'Create a character'}
         </Text>
         <Text style={commonStyles.subtitle}>
-          Fill in your character&apos;s basic information.
+          Fill in your hero&apos;s basic information. You can extend this sheet later.
         </Text>
 
-        <Text style={commonStyles.sectionHeader}>Identité</Text>
+        {/* Section identité */}
+        <Text style={commonStyles.sectionHeader}>Identity</Text>
 
         <TextInput
-          placeholder="Nom du personnage"
+          placeholder="Character name"
           placeholderTextColor="#9ca3af"
           value={name}
           onChangeText={setName}
@@ -100,7 +114,7 @@ const CharacterFormScreen = ({ navigation, route }) => {
         />
 
         <TextInput
-          placeholder="Classe"
+          placeholder="Class (fighter, wizard, rogue...)"
           placeholderTextColor="#9ca3af"
           value={charClass}
           onChangeText={setCharClass}
@@ -108,32 +122,35 @@ const CharacterFormScreen = ({ navigation, route }) => {
         />
 
         <TextInput
-          placeholder="Race"
+          placeholder="Race (human, elf, dwarf...)"
           placeholderTextColor="#9ca3af"
           value={race}
           onChangeText={setRace}
           style={commonStyles.input}
         />
 
+        {/* Actions */}
         <View style={commonStyles.actions}>
-          <Button
-            onPress={handleSave}
-            title={characterId ? 'Mettre à jour' : 'Enregistrer'}
-          />
+          <View style={commonStyles.primaryCta}>
+            <Text
+              style={commonStyles.primaryCtaText}
+              onPress={handleSave}
+            >
+              {characterId ? 'Save changes' : 'Create character'}
+            </Text>
+          </View>
 
           {characterId && (
             <Button
-              onPress={handleDelete}
+              title="Delete character"
               color="#b91c1c"
-              title="Supprimer le personnage"
+              onPress={handleDelete}
             />
           )}
 
           <Button
-            onPress={() => {
-              navigation.goBack();
-            }}
-            title="Retour à l'écran d'accueil"
+            title="Back to characters"
+            onPress={() => navigation.goBack()}
           />
         </View>
       </View>
