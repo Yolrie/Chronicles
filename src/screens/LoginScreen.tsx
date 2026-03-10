@@ -1,69 +1,93 @@
-// LoginScreen.tsx
+// src/screens/LoginScreen.tsx
 
 import React from 'react';
-import { View, Text, Button, TextInput } from 'react-native';
+import { View, Text, TextInput, Button } from 'react-native';
 import commonStyles from '../styles/common';
-import { useState } from 'react';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
+type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
+const LoginScreen: React.FC<Props> = ({ navigation }) => {
+  const [username, setUsername] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
 
-const LoginScreen = ({ navigation }) => {
-  
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [username, setUsername] = useState('');
-
-  const isValid =
-  username.trim().length > 0 &&
-  email.trim().length > 0 &&
-  password.trim().length > 0;
+  const handleLogin = () => {
+    navigation.navigate('Home', {
+      username,
+      email,
+      password,
+    });
+  };
 
   return (
     <View style={commonStyles.screen}>
       <View style={commonStyles.card}>
-        <Text style={commonStyles.title}>LoginScreen</Text>
+        {/* Petit badge haut */}
+        <View style={commonStyles.pill}>
+          <Text style={commonStyles.pillText}>Create · Build · Play</Text>
+        </View>
 
-        {username.length > 0 && (
-        <Text style={commonStyles.subtitle}>
-          Bonjour, {username}
+        {/* Titre principal */}
+        <Text style={commonStyles.title}>
+          Access your characters
         </Text>
-      )}
 
+        <Text style={commonStyles.subtitle}>
+          Sign in to start creating and managing your D&D‑style heroes.
+        </Text>
 
+        {/* Formulaire */}
         <TextInput
-            placeholder="Name"
-            placeholderTextColor="#9ca3af"
-            value={username}
-            onChangeText={setUsername}
-            style={commonStyles.input}
+          placeholder="Username"
+          placeholderTextColor="#9ca3af"
+          value={username}
+          onChangeText={setUsername}
+          style={commonStyles.input}
         />
 
         <TextInput
-            placeholder="Email"
-            placeholderTextColor="#9ca3af"
-            value={email}
-            onChangeText={setEmail}
-            style={commonStyles.input}
+          placeholder="Email"
+          placeholderTextColor="#9ca3af"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
+          style={commonStyles.input}
         />
 
         <TextInput
-            placeholder="Mot de passe"
-            placeholderTextColor="#9ca3af"
-            value={password}
-            onChangeText={setPassword}
-            style={commonStyles.input}
+          placeholder="Password"
+          placeholderTextColor="#9ca3af"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+          style={commonStyles.input}
         />
 
+        {/* Actions */}
         <View style={commonStyles.actions}>
+          {/* CTA rouge */}
+          <View style={commonStyles.primaryCta}>
+            <Text
+              style={commonStyles.primaryCtaText}
+              onPress={handleLogin}
+            >
+              Continue
+            </Text>
+          </View>
+
+          {/* Bouton secondaire simple */}
           <Button
+            title="Use a demo account"
             onPress={() => {
-              navigation.navigate('Home', { username });
+              setUsername('Demo hero');
+              setEmail('demo@example.com');
+              setPassword('demo');
             }}
-            title="Enregistrer"
-            disabled={!isValid}
           />
         </View>
-        
       </View>
     </View>
   );
