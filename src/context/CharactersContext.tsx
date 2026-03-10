@@ -13,6 +13,7 @@ type CharactersContextValue = {
   characters: Character[];
   addCharacter: (character: Character) => void;
   updateCharacter: (character: Character) => void;
+  deleteCharacter: (id: number) => void;
 };
 
 const CharactersContext = createContext<CharactersContextValue | undefined>(
@@ -38,8 +39,14 @@ export const CharactersProvider = ({ children }: { children: React.ReactNode }) 
     );
   };
 
+  const deleteCharacter = (id: number) => {
+    setCharacters(prev => prev.filter(c => c.id !== id));
+  };
+
   return (
-    <CharactersContext.Provider value={{ characters, addCharacter, updateCharacter }}>
+    <CharactersContext.Provider
+      value={{ characters, addCharacter, updateCharacter, deleteCharacter }}
+    >
       {children}
     </CharactersContext.Provider>
   );
