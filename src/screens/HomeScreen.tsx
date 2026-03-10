@@ -1,165 +1,155 @@
 // src/screens/HomeScreen.tsx
 
 import React from 'react';
-import { View, Text, TouchableOpacity, Button, Alert } from 'react-native';
-import commonStyles from '../styles/common';
-import { useCharacters } from '../context/CharactersContext';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { useCharacters } from '../context/CharactersContext';
+import { commonStyles, colors } from '../styles/common';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 const HomeScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { username } = route.params || {};
-  const { characters, deleteCharacter } = useCharacters();
+  const { characters } = useCharacters();
+  const { username } = route.params;
 
-  const handleDeleteFromList = (id: number) => {
-    Alert.alert(
-      'Delete character',
-      'This action cannot be undone. Continue?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => deleteCharacter(id),
-        },
-      ],
-    );
-  };
+  function goToCreate() {
+    navigation.navigate('CharacterForm', undefined);
+  }
 
-  const getInitials = (name: string) => {
-    if (!name) return '?';
-    const parts = name.trim().split(' ');
-    if (parts.length === 1) return parts[0][0].toUpperCase();
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  };
+  function goToEdit(id: number) {
+    navigation.navigate('CharacterForm', { characterId: id });
+  }
+
+  function goToGuilds() {
+    navigation.navigate('Guilds');
+  }
 
   return (
     <View style={commonStyles.screen}>
-      {/* Conteneur plein écran (plus de grosse card avec ombres) */}
-      <View
-        style={{
-          width: '100%',
-          flex: 1,
-          paddingHorizontal: 20,
-          paddingVertical: 24,
-        }}
-      >
-        {/* Haut : titre + stats */}
-        <View>
-          <View style={commonStyles.pill}>
-            <Text style={commonStyles.pillText}>Character dashboard</Text>
-          </View>
-
-          <Text style={commonStyles.title}>Your party</Text>
-
-          {username ? (
-            <Text style={commonStyles.subtitle}>
-              Welcome, {username}. Create, edit, and track your heroes.
-            </Text>
-          ) : (
-            <Text style={commonStyles.subtitle}>
-              Build and manage a roster of D&D‑style characters.
-            </Text>
-          )}
-
-          <Text style={commonStyles.sectionHeader}>Overview</Text>
-          <View style={commonStyles.statRow}>
-            <View style={commonStyles.statCard}>
-              <Text style={commonStyles.statLabel}>Characters</Text>
-              <Text style={commonStyles.statValue}>{characters.length}</Text>
-            </View>
-            <View style={commonStyles.statCard}>
-              <Text style={commonStyles.statLabel}>Last activity</Text>
-              <Text style={commonStyles.statValue}>—</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Milieu : liste */}
-        <View style={{ flex: 1, marginTop: 20 }}>
-          {characters.length === 0 ? (
-            <View style={commonStyles.badge}>
-              <Text style={commonStyles.badgeText}>
-                No characters yet. Create your first hero.
-              </Text>
-            </View>
-          ) : (
-            <View>
-              {characters.map((c) => (
-                <View key={c.id} style={commonStyles.characterCard}>
-                  {/* Ligne entête : initiales + nom + meta */}
-                  <View style={commonStyles.characterHeaderRow}>
-                    <View style={commonStyles.characterInitials}>
-                      <Text style={commonStyles.characterInitialsText}>
-                        {getInitials(c.name)}
-                      </Text>
-                    </View>
-
-                    <View style={commonStyles.characterNameBlock}>
-                      <Text style={commonStyles.characterName}>{c.name}</Text>
-                      <Text style={commonStyles.characterMetaLine}>
-                        {c.class || 'No class'} · {c.race || 'Unknown race'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Ligne bas : tags + actions */}
-                  <View style={commonStyles.characterFooterRow}>
-                    <View style={commonStyles.characterTagsRow}>
-                      {/* Placeholder pour plus tard : niveau, campagne, etc. */}
-                      <Text style={commonStyles.characterTag}>Single‑player</Text>
-                    </View>
-
-                    <View style={commonStyles.characterActionsRow}>
-                      <TouchableOpacity
-                        onPress={() =>
-                          navigation.navigate('CharacterForm', {
-                            characterId: c.id,
-                          })
-                        }
-                        style={commonStyles.linkButton}
-                      >
-                        <Text style={commonStyles.linkButtonText}>Edit</Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        onPress={() => handleDeleteFromList(c.id)}
-                        style={[commonStyles.linkButton, { marginLeft: 12 }]}
-                      >
-                        <Text style={commonStyles.linkButtonText}>Delete</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Bas : actions (remontées et décollées du bord bas) */}
-        <View
-          style={[
-            commonStyles.actions,
-            { marginTop: 18, marginBottom: 12 },
-          ]}
-        >
-          <TouchableOpacity
-            onPress={() => navigation.navigate('CharacterForm')}
-            style={commonStyles.primaryCta}
-          >
-            <Text style={commonStyles.primaryCtaText}>
-              Create new character
-            </Text>
-          </TouchableOpacity>
-
-          <Button
-            onPress={() => navigation.navigate('Login')}
-            title="Back to sign in"
-          />
-        </View>
+      {/* Header */}
+      <View style={{ marginBottom: 16 }}>
+        <Text style={commonStyles.headerTitle}>
+          Welcome, {username || 'Adventurer'}
+        </Text>
+        <Text style={commonStyles.headerSubtitle}>
+          Forge heroes, then gather them into guilds.
+        </Text>
       </View>
+
+      {/* Actions principales */}
+      <View style={{ marginBottom: 16, gap: 8 }}>
+        <TouchableOpacity style={commonStyles.primaryCta} onPress={goToCreate}>
+          <Text style={commonStyles.primaryCtaText}>
+            Create new character
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={commonStyles.goldCta} onPress={goToGuilds}>
+          <Text style={commonStyles.goldCtaText}>Open guilds</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Liste de personnages */}
+      <Text style={commonStyles.sectionTitle}>My characters</Text>
+
+      {characters.length === 0 ? (
+        <View style={[commonStyles.card, { marginTop: 8 }]}>
+          <Text style={commonStyles.bodyText}>
+            No character yet. Forge your first hero to begin your chronicles.
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={characters}
+          keyExtractor={item => item.id.toString()}
+          contentContainerStyle={{ paddingBottom: 24 }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[commonStyles.card, { flexDirection: 'row', alignItems: 'center' }]}
+              onPress={() => goToEdit(item.id)}
+            >
+              {/* Avatar simple avec initiale */}
+              <View
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 10,
+                  backgroundColor: colors.deep,
+                  borderWidth: 1,
+                  borderColor: colors.border2,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: 'Cinzel',
+                    fontSize: 18,
+                    color: colors.gold2,
+                    fontWeight: '700',
+                  }}
+                >
+                  {item.name?.[0]?.toUpperCase() ?? '?'}
+                </Text>
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontFamily: 'Cinzel',
+                    fontSize: 15,
+                    color: colors.parchment,
+                    fontWeight: '700',
+                  }}
+                >
+                  {item.name}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: 'EB Garamond',
+                    fontSize: 13,
+                    color: '#9ca3af',
+                    marginTop: 2,
+                  }}
+                >
+                  {(item.race || 'Unknown race') +
+                    ' · ' +
+                    (item.class || 'Unknown class')}
+                </Text>
+              </View>
+
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text
+                  style={[
+                    commonStyles.badge,
+                    commonStyles.badgeGold,
+                    { marginBottom: 4 },
+                  ]}
+                >
+                  Lv. {item.level ?? 1}
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: 'EB Garamond',
+                    fontSize: 11,
+                    color: colors.muted,
+                  }}
+                >
+                  Tap to edit
+                </Text>
+              </View>
+            </TouchableOpacity>
+          )}
+        />
+      )}
     </View>
   );
 };
