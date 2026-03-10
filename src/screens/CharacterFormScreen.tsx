@@ -1,160 +1,190 @@
 // src/screens/CharacterFormScreen.tsx
 
-import React from 'react';
-import { View, Text, TextInput, Button, Alert } from 'react-native';
-import commonStyles from '../styles/common';
-import { useCharacters } from '../context/CharactersContext';
+import React, { useLayoutEffect, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { useCharacters } from '../context/CharactersContext';
+import { commonStyles } from '../styles/common';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CharacterForm'>;
 
-const CharacterFormScreen: React.FC<Props> = ({ navigation, route }) => {
-  const [name, setName] = React.useState('');
-  const [charClass, setCharClass] = React.useState('');
-  const [race, setRace] = React.useState('');
-
-  const characterId = route?.params?.characterId;
+const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
+  const { characterId } = route.params || {};
   const { characters, addCharacter, updateCharacter, deleteCharacter } =
     useCharacters();
 
-  // Pré-remplissage si édition
-  React.useEffect(() => {
-    if (!characterId) return;
-    const existing = characters.find(c => c.id === characterId);
-    if (!existing) return;
+  const existingCharacter = useMemo(
+    () => characters.find(c => c.id === characterId),
+    [characters, characterId],
+  );
 
-    setName(existing.name);
-    setCharClass(existing.class);
-    setRace(existing.race);
-  }, [characterId, characters]);
+  const [name, setName] = useState(existingCharacter?.name ?? '');
+  const [race, setRace] = useState(existingCharacter?.race ?? '');
+  const [charClass, setCharClass] = useState(existingCharacter?.class ?? '');
+  const [level, setLevel] = useState(
+    existingCharacter?.level?.toString() ?? '1',
+  );
 
-  const handleSave = () => {
+  const isEditMode = !!existingCharacter;
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: isEditMode ? 'Edit character' : 'New character',
+    });
+  }, [navigation, isEditMode]);
+
+  function handleSave() {
     if (!name.trim()) {
       Alert.alert('Missing name', 'Please enter a character name.');
       return;
     }
 
-    const baseCharacter = {
-      id: characterId ?? Date.now(),
+    const payload = {
       name: name.trim(),
-      class: charClass.trim(),
-      race: race.trim(),
+      race: race.trim() || undefined,
+      class: charClass.trim() || undefined,
+      level: Number(level) || 1,
     };
 
-    if (characterId) {
-      updateCharacter(baseCharacter);
+    if (isEditMode && existingCharacter) {
+      updateCharacter(existingCharacter.id, payload);
     } else {
-      addCharacter(baseCharacter);
+      addCharacter(payload);
     }
 
-    Alert.alert(
-      characterId ? 'Character updated' : 'Character created',
-      characterId
-        ? 'Your character has been updated.'
-        : 'Your character has been added to the list.',
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            navigation.goBack();
-          },
-        },
-      ],
-    );
-  };
+    navigation.goBack();
+  }
 
-  const handleDelete = () => {
-    if (!characterId) return;
-
+  function confirmDelete() {
+    if (!existingCharacter) return;
     Alert.alert(
       'Delete character',
-      'This action cannot be undone. Continue?',
+      `Are you sure you want to delete “${existingCharacter.name}”?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            deleteCharacter(characterId);
+            deleteCharacter(existingCharacter.id);
             navigation.goBack();
           },
         },
       ],
     );
-  };
+  }
 
   return (
-    <View style={commonStyles.screen}>
-      <View style={commonStyles.card}>
-        {/* Badge / contexte */}
-        <View style={commonStyles.pill}>
-          <Text style={commonStyles.pillText}>
-            {characterId ? 'Edit character' : 'New character'}
-          </Text>
-        </View>
-
-        {/* Titre */}
-        <Text style={commonStyles.title}>
-          {characterId ? 'Character sheet' : 'Create a character'}
-        </Text>
-        <Text style={commonStyles.subtitle}>
-          Fill in your hero&apos;s basic information. You can extend this sheet later.
-        </Text>
-
-        {/* Section identité */}
-        <Text style={commonStyles.sectionHeader}>Identity</Text>
-
-        <TextInput
-          placeholder="Character name"
-          placeholderTextColor="#9ca3af"
-          value={name}
-          onChangeText={setName}
-          style={commonStyles.input}
-        />
-
-        <TextInput
-          placeholder="Class (fighter, wizard, rogue...)"
-          placeholderTextColor="#9ca3af"
-          value={charClass}
-          onChangeText={setCharClass}
-          style={commonStyles.input}
-        />
-
-        <TextInput
-          placeholder="Race (human, elf, dwarf...)"
-          placeholderTextColor="#9ca3af"
-          value={race}
-          onChangeText={setRace}
-          style={commonStyles.input}
-        />
-
-        {/* Actions */}
-        <View style={commonStyles.actions}>
-          <View style={commonStyles.primaryCta}>
-            <Text
-              style={commonStyles.primaryCtaText}
-              onPress={handleSave}
-            >
-              {characterId ? 'Save changes' : 'Create character'}
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: '#0b0806' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={commonStyles.screen}>
+          <View style={commonStyles.card}>
+            <Text style={commonStyles.headerTitle}>
+              {isEditMode ? 'Character sheet' : 'Forge a new hero'}
             </Text>
+            <Text style={commonStyles.headerSubtitle}>
+              Name, race, class and level — enough for a first draft.
+            </Text>
+
+            {/* Name */}
+            <View style={commonStyles.fieldWrap}>
+              <Text style={commonStyles.fieldLabel}>Character name</Text>
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                placeholder="Arthémis Valdor..."
+                placeholderTextColor="#6a5a40"
+                style={commonStyles.input}
+              />
+            </View>
+
+            {/* Race */}
+            <View style={commonStyles.fieldWrap}>
+              <Text style={commonStyles.fieldLabel}>Race</Text>
+              <TextInput
+                value={race}
+                onChangeText={setRace}
+                placeholder="Human, Elf, Dwarf..."
+                placeholderTextColor="#6a5a40"
+                style={commonStyles.input}
+              />
+            </View>
+
+            {/* Class */}
+            <View style={commonStyles.fieldWrap}>
+              <Text style={commonStyles.fieldLabel}>Class</Text>
+              <TextInput
+                value={charClass}
+                onChangeText={setCharClass}
+                placeholder="Warrior, Mage, Rogue..."
+                placeholderTextColor="#6a5a40"
+                style={commonStyles.input}
+              />
+            </View>
+
+            {/* Level */}
+            <View style={commonStyles.fieldWrap}>
+              <Text style={commonStyles.fieldLabel}>Level</Text>
+              <TextInput
+                value={level}
+                onChangeText={setLevel}
+                placeholder="1"
+                keyboardType="number-pad"
+                placeholderTextColor="#6a5a40"
+                style={commonStyles.input}
+              />
+            </View>
+
+            {/* Actions */}
+            <View style={{ marginTop: 12, gap: 8 }}>
+              <TouchableOpacity
+                style={commonStyles.primaryCta}
+                onPress={handleSave}
+              >
+                <Text style={commonStyles.primaryCtaText}>
+                  {isEditMode ? 'Save changes' : 'Create character'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={commonStyles.ghostButton}
+                onPress={() => navigation.goBack()}
+              >
+                <Text style={commonStyles.ghostButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              {isEditMode && (
+                <TouchableOpacity
+                  style={commonStyles.dangerButton}
+                  onPress={confirmDelete}
+                >
+                  <Text style={commonStyles.dangerButtonText}>
+                    Delete character
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
-
-          {characterId && (
-            <Button
-              title="Delete character"
-              color="#b91c1c"
-              onPress={handleDelete}
-            />
-          )}
-
-          <Button
-            title="Back to characters"
-            onPress={() => navigation.goBack()}
-          />
         </View>
-      </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
