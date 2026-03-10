@@ -1,95 +1,149 @@
 // src/screens/LoginScreen.tsx
 
-import React from 'react';
-import { View, Text, TextInput, Button } from 'react-native';
-import commonStyles from '../styles/common';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+
 import { RootStackParamList } from '../navigation/AppNavigator';
+import { commonStyles, colors } from '../styles/common';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
 
 const LoginScreen: React.FC<Props> = ({ navigation }) => {
-  const [username, setUsername] = React.useState('');
-  const [email, setEmail] = React.useState('');
-  const [password, setPassword] = React.useState('');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
+  function handleSignIn() {
+    if (!username.trim()) {
+      // v1 simple : on demande juste un pseudo
+      return;
+    }
     navigation.navigate('Home', {
-      username,
-      email,
+      username: username.trim(),
+      email: email.trim(),
       password,
     });
-  };
+  }
 
   return (
-    <View style={commonStyles.screen}>
-      <View style={commonStyles.card}>
-        {/* Petit badge haut */}
-        <View style={commonStyles.pill}>
-          <Text style={commonStyles.pillText}>Create · Build · Play</Text>
-        </View>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: colors.ink }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={[commonStyles.screen, { justifyContent: 'center' }]}>
+          <View style={[commonStyles.card, { paddingVertical: 24 }]}>
+            {/* Logo / titre */}
+            <View style={{ marginBottom: 20, alignItems: 'center' }}>
+              <View
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: 16,
+                  backgroundColor: colors.deep,
+                  borderWidth: 1,
+                  borderColor: colors.border2,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 16,
+                }}
+              >
+                <Text
+                  style={{
+                    fontFamily: 'Cinzel',
+                    fontSize: 28,
+                    color: colors.gold2,
+                  }}
+                >
+                  C
+                </Text>
+              </View>
+              <Text
+                style={{
+                  fontFamily: 'Cinzel Decorative',
+                  fontSize: 26,
+                  color: colors.gold2,
+                  letterSpacing: 1,
+                }}
+              >
+                Chronicles
+              </Text>
+              <Text
+                style={{
+                  fontFamily: 'Cinzel',
+                  fontSize: 11,
+                  color: '#9ca3af',
+                  letterSpacing: 2,
+                  textTransform: 'uppercase',
+                  marginTop: 4,
+                }}
+              >
+                Forge de personnages
+              </Text>
+            </View>
 
-        {/* Titre principal */}
-        <Text style={commonStyles.title}>
-          Access your characters
-        </Text>
+            {/* Formulaire */}
+            <View style={commonStyles.fieldWrap}>
+              <Text style={commonStyles.fieldLabel}>Username</Text>
+              <TextInput
+                value={username}
+                onChangeText={setUsername}
+                placeholder="Your adventurer name..."
+                placeholderTextColor={colors.muted}
+                style={commonStyles.input}
+              />
+            </View>
 
-        <Text style={commonStyles.subtitle}>
-          Sign in to start creating and managing your D&D‑style heroes.
-        </Text>
+            <View style={commonStyles.fieldWrap}>
+              <Text style={commonStyles.fieldLabel}>Email (optional)</Text>
+              <TextInput
+                value={email}
+                onChangeText={setEmail}
+                placeholder="you@realm.com"
+                placeholderTextColor={colors.muted}
+                style={commonStyles.input}
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+            </View>
 
-        {/* Formulaire */}
-        <TextInput
-          placeholder="Username"
-          placeholderTextColor="#9ca3af"
-          value={username}
-          onChangeText={setUsername}
-          style={commonStyles.input}
-        />
+            <View style={commonStyles.fieldWrap}>
+              <Text style={commonStyles.fieldLabel}>Password (optional)</Text>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                placeholderTextColor={colors.muted}
+                style={commonStyles.input}
+                secureTextEntry
+              />
+            </View>
 
-        <TextInput
-          placeholder="Email"
-          placeholderTextColor="#9ca3af"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-          style={commonStyles.input}
-        />
-
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor="#9ca3af"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          style={commonStyles.input}
-        />
-
-        {/* Actions */}
-        <View style={commonStyles.actions}>
-          {/* CTA rouge */}
-          <View style={commonStyles.primaryCta}>
-            <Text
-              style={commonStyles.primaryCtaText}
-              onPress={handleLogin}
-            >
-              Continue
-            </Text>
+            {/* CTA */}
+            <View style={{ marginTop: 12 }}>
+              <TouchableOpacity
+                style={commonStyles.primaryCta}
+                onPress={handleSignIn}
+              >
+                <Text style={commonStyles.primaryCtaText}>Enter the realm</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-
-          {/* Bouton secondaire simple */}
-          <Button
-            title="Use a demo account"
-            onPress={() => {
-              setUsername('Demo hero');
-              setEmail('demo@example.com');
-              setPassword('demo');
-            }}
-          />
         </View>
-      </View>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
