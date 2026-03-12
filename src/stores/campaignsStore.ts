@@ -4,6 +4,21 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { Campaign, CampaignPlayer, SessionLog } from '../types';
 
+export interface CampaignSession {
+  id:            string;
+  campaign_id:   string;
+  created_by:    string;
+  title:         string;
+  description?:  string;
+  scheduled_at:  string;
+  duration_min:  number;
+  location?:     string;
+  is_online:     boolean;
+  meeting_link?: string;
+  status:        'scheduled' | 'cancelled' | 'completed';
+  created_at:    string;
+}
+
 export interface CampaignRules {
   allowed_races?: string[];
   allowed_classes?: string[];
@@ -22,6 +37,7 @@ interface CampaignsState {
   activeCampaign: Campaign | null;
   campaignPlayers: CampaignPlayer[];
   sessionLogs: SessionLog[];
+  campaignSessions: CampaignSession[];
   loading: boolean;
   error: string | null;
 
@@ -33,6 +49,8 @@ interface CampaignsState {
   deleteCampaign: (campaignId: string) => Promise<void>;
   fetchCampaignPlayers: (campaignId: string) => Promise<void>;
   fetchSessionLogs: (campaignId: string) => Promise<void>;
+  fetchCampaignSessions: (campaignId: string) => Promise<void>;
+  createCampaignSession: (session: Omit<CampaignSession, 'id' | 'created_at' | 'created_by'>) => Promise<CampaignSession | null>;
   createSessionLog: (log: Omit<SessionLog, 'id' | 'created_at' | 'status' | 'reviewed_by' | 'reviewed_at'>) => Promise<SessionLog | null>;
   approveSessionLog: (logId: string) => Promise<void>;
   rejectSessionLog: (logId: string) => Promise<void>;
@@ -45,6 +63,7 @@ export const useCampaignsStore = create<CampaignsState>((set, get) => ({
   activeCampaign: null,
   campaignPlayers: [],
   sessionLogs: [],
+  campaignSessions: [],
   loading: false,
   error: null,
 
@@ -184,6 +203,28 @@ export const useCampaignsStore = create<CampaignsState>((set, get) => ({
       .select('*, player:profiles!campaign_players_player_id_fkey(id,username,avatar_url), character:characters(id,name,race,class,level)')
       .eq('campaign_id', campaignId);
     set({ campaignPlayers: data ?? [] });
+  },
+
+  fetchCampaignSessions: async (campaignId) => {
+    const { data } = await supabase
+      .from('campaign_sessions')
+      .select('*')
+      .eq('campaign_id', campaignId)
+      .order('scheduled_at', { ascending: true });
+    set({ campaignSessions: data ?? [] });
+  },
+
+  createCampaignSession: async (session) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    const { data, error } = await supabase
+      .from('campaign_sessions')
+      .insert({ ...session, created_by: user.id })
+      .select()
+      .single();
+    if (error) { set({ error: error.message }); return null; }
+    set(state => ({ campaignSessions: [...state.campaignSessions, data] }));
+    return data;
   },
 
   fetchSessionLogs: async (campaignId) => {
