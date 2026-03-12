@@ -5,14 +5,17 @@ import {
   View, Text, TextInput, TouchableOpacity, ScrollView, Alert, StyleSheet, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../stores/authStore';
 import { useCharactersStore } from '../stores/charactersStore';
 import { useCampaignsStore } from '../stores/campaignsStore';
 import { useI18n } from '../i18n';
 import { Locale } from '../i18n/translations';
 import { colors, commonStyles, typography } from '../styles/common';
+import ImagePlaceholder from '../components/ImagePlaceholder';
 
 const ProfileScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const { profile, loading, signOut, updateProfile } = useAuthStore();
   const { characters } = useCharactersStore();
   const { campaigns } = useCampaignsStore();
@@ -57,7 +60,16 @@ const ProfileScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Avatar */}
         <View style={styles.profileBlock}>
-          <View style={styles.avatarCircle}>
+          {/* Emplacement photo de profil */}
+          <ImagePlaceholder
+            width={80}
+            height={80}
+            borderRadius={40}
+            label=""
+            style={{ marginBottom: 12 }}
+          />
+          {/* Overlay initiale sur le placeholder */}
+          <View style={[styles.avatarOverlay, { position: 'absolute', top: 0 }]}>
             <Text style={styles.avatarLetter}>{profile?.username?.[0]?.toUpperCase() ?? '?'}</Text>
           </View>
           {!editMode && (
@@ -184,6 +196,19 @@ const ProfileScreen: React.FC = () => {
           <Text style={[commonStyles.mutedText, { marginTop: 10 }]}>{t.profile.version} 2.0.0</Text>
         </View>
 
+        {/* Accès Premium */}
+        <TouchableOpacity
+          style={[commonStyles.card, styles.premiumCard]}
+          onPress={() => navigation.navigate('Premium')}
+        >
+          <Text style={styles.premiumCardIcon}>✦</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.premiumCardTitle}>{t.nav.premium}</Text>
+            <Text style={[commonStyles.mutedText, { fontSize: 12 }]}>{t.premium.subtitle}</Text>
+          </View>
+          <Text style={{ color: colors.gold2, fontSize: 18 }}>›</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={[commonStyles.dangerButton, { alignItems: 'center', marginTop: 8 }]} onPress={handleSignOut}>
           <Text style={commonStyles.dangerButtonText}>{t.profile.signOut}</Text>
         </TouchableOpacity>
@@ -198,12 +223,14 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.ink },
   scroll: { paddingHorizontal: 16, paddingTop: 24, paddingBottom: 40 },
   profileBlock: { alignItems: 'center', marginBottom: 24 },
-  avatarCircle: {
+  avatarOverlay: {
     width: 80, height: 80, borderRadius: 40,
-    backgroundColor: 'rgba(201,152,58,0.1)', borderWidth: 2, borderColor: colors.gold2,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 12,
+    alignItems: 'center', justifyContent: 'center',
   },
   avatarLetter: { fontFamily: typography.display, fontSize: 32, color: colors.gold2, fontWeight: '700' },
+  premiumCard: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  premiumCardIcon: { fontSize: 20, color: colors.gold2 },
+  premiumCardTitle: { fontFamily: typography.title, fontSize: 13, color: colors.parchment, fontWeight: '700' },
   displayName: { fontFamily: typography.title, fontSize: 22, color: colors.parchment, fontWeight: '700', letterSpacing: 0.5 },
   statsRow: { flexDirection: 'row', backgroundColor: colors.deep, borderRadius: 10, borderWidth: 1, borderColor: colors.border, overflow: 'hidden', marginBottom: 16 },
   statCard: { flex: 1, alignItems: 'center', paddingVertical: 16 },
