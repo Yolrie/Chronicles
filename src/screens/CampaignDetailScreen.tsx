@@ -285,6 +285,16 @@ const CampaignDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </View>
 
+        {/* Bouton planifier une session (GM uniquement) */}
+        {isGM && (
+          <TouchableOpacity
+            style={[commonStyles.goldCta, { marginBottom: 10 }]}
+            onPress={() => navigation.navigate('SessionSchedule', { campaignId })}
+          >
+            <Text style={commonStyles.goldCtaText}>📅 {t.sessions.scheduleTitle}</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Bouton créer un personnage (joueur dans la campagne) */}
         {!isGM && (
           <TouchableOpacity

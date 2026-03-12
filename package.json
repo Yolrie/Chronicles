@@ -1,18 +1,19 @@
 {
   "name": "hsc",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "main": "index.ts",
   "scripts": {
-    "start":   "expo start",
+    "start": "expo start",
     "android": "expo start --android",
-    "ios":     "expo start --ios",
-    "web":     "expo start --web",
-    "test":    "jest --passWithNoTests",
-    "test:watch":    "jest --watch",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-clipboard/clipboard": "^1.14.1",
     "@react-navigation/bottom-tabs": "^7.12.0",
     "@react-navigation/native": "^7.1.33",
     "@react-navigation/native-stack": "^7.14.4",
@@ -20,7 +21,13 @@
     "date-fns": "^4.1.0",
     "dotenv": "^17.3.1",
     "expo": "~54.0.33",
+    "expo-calendar": "~13.0.3",
     "expo-constants": "~18.0.13",
+    "expo-image-picker": "~16.0.6",
+    "expo-linking": "~7.0.5",
+    "expo-notifications": "~0.29.13",
+    "expo-secure-store": "~14.0.1",
+    "expo-sharing": "~13.0.1",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-hook-form": "^7.71.1",
@@ -45,7 +52,9 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "setupFilesAfterFramework": ["@testing-library/jest-native/extend-expect"],
+    "setupFilesAfterFramework": [
+      "@testing-library/jest-native/extend-expect"
+    ],
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)"
     ],
