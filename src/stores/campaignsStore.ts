@@ -4,6 +4,14 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { Campaign, CampaignPlayer, SessionLog } from '../types';
 
+export interface CampaignRules {
+  allowed_races?: string[];
+  allowed_classes?: string[];
+  stat_method?: 'standard_array' | 'point_buy' | 'roll';
+  gm_notes?: string;
+  stages?: { name: string; description: string }[];
+}
+
 function randomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
@@ -19,6 +27,7 @@ interface CampaignsState {
 
   fetchCampaigns: () => Promise<void>;
   createCampaign: (name: string, description?: string, gameSystemId?: string) => Promise<Campaign | null>;
+  updateCampaignRules: (campaignId: string, rules: CampaignRules) => Promise<boolean>;
   joinCampaign: (inviteCode: string, characterId?: string) => Promise<'ok' | 'not_found' | 'already' | 'error'>;
   leaveCampaign: (campaignId: string) => Promise<void>;
   deleteCampaign: (campaignId: string) => Promise<void>;
@@ -42,10 +51,8 @@ export const useCampaignsStore = create<CampaignsState>((set, get) => ({
   fetchCampaigns: async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-
     set({ loading: true, error: null });
 
-    // Campaigns where I'm the GM
     const { data: gmCampaigns } = await supabase
       .from('campaigns')
       .select('*, game_master:profiles!campaigns_game_master_id_fkey(id,username,avatar_url)')
@@ -53,7 +60,6 @@ export const useCampaignsStore = create<CampaignsState>((set, get) => ({
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
-    // Campaigns where I'm a player
     const { data: playerEntries } = await supabase
       .from('campaign_players')
       .select('campaign_id')
@@ -78,34 +84,52 @@ export const useCampaignsStore = create<CampaignsState>((set, get) => ({
 
   createCampaign: async (name, description, gameSystemId) => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-    set({ error: null });
-
-    let code = randomCode();
-    // Ensure uniqueness
-    const { data: existing } = await supabase
-      .from('campaigns').select('id').eq('invite_code', code).maybeSingle();
-    if (existing) code = randomCode() + Math.floor(Math.random() * 9);
+    if (!user) {
+      set({ error: 'Non connecté.' });
+      return null;
+    }
+    set({ loading: true, error: null });
 
     const { data, error } = await supabase
       .from('campaigns')
       .insert({
         name,
-        description,
+        description: description ?? null,
         game_master_id: user.id,
         game_system_id: gameSystemId ?? null,
-        invite_code: code,
+        invite_code: randomCode(),
         is_active: true,
+        rules_json: {},
       })
-      .select()
+      .select('*, game_master:profiles!campaigns_game_master_id_fkey(id,username,avatar_url)')
       .single();
+
     if (error) {
-      set({ error: error.message });
+      set({ loading: false, error: error.message });
       return null;
     }
-    const campaign = { ...data, my_role: 'game_master' as const };
-    set(state => ({ campaigns: [campaign, ...state.campaigns] }));
+
+    const campaign: Campaign = { ...data, my_role: 'game_master' };
+    set(state => ({ campaigns: [campaign, ...state.campaigns], loading: false }));
     return campaign;
+  },
+
+  updateCampaignRules: async (campaignId, rules) => {
+    set({ error: null });
+    const { error } = await supabase
+      .from('campaigns')
+      .update({ rules_json: rules })
+      .eq('id', campaignId);
+    if (error) {
+      set({ error: error.message });
+      return false;
+    }
+    set(state => ({
+      campaigns: state.campaigns.map(c =>
+        c.id === campaignId ? { ...c, rules_json: rules as Record<string, unknown> } : c
+      ),
+    }));
+    return true;
   },
 
   joinCampaign: async (inviteCode, characterId) => {
@@ -145,10 +169,7 @@ export const useCampaignsStore = create<CampaignsState>((set, get) => ({
   leaveCampaign: async (campaignId) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from('campaign_players')
-      .delete()
-      .eq('campaign_id', campaignId)
-      .eq('player_id', user.id);
+    await supabase.from('campaign_players').delete().eq('campaign_id', campaignId).eq('player_id', user.id);
     set(state => ({ campaigns: state.campaigns.filter(c => c.id !== campaignId) }));
   },
 
@@ -180,10 +201,7 @@ export const useCampaignsStore = create<CampaignsState>((set, get) => ({
       .insert({ ...log, status: 'pending' })
       .select()
       .single();
-    if (error) {
-      set({ error: error.message });
-      return null;
-    }
+    if (error) { set({ error: error.message }); return null; }
     set(state => ({ sessionLogs: [data, ...state.sessionLogs] }));
     return data;
   },
@@ -191,26 +209,21 @@ export const useCampaignsStore = create<CampaignsState>((set, get) => ({
   approveSessionLog: async (logId) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from('session_logs')
+    const { error } = await supabase.from('session_logs')
       .update({ status: 'approved', reviewed_by: user.id, reviewed_at: new Date().toISOString() })
       .eq('id', logId);
-    set(state => ({
-      sessionLogs: state.sessionLogs.map(l => l.id === logId ? { ...l, status: 'approved' } : l),
-    }));
+    if (!error) set(state => ({ sessionLogs: state.sessionLogs.map(l => l.id === logId ? { ...l, status: 'approved' as const } : l) }));
   },
 
   rejectSessionLog: async (logId) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    await supabase.from('session_logs')
+    const { error } = await supabase.from('session_logs')
       .update({ status: 'rejected', reviewed_by: user.id, reviewed_at: new Date().toISOString() })
       .eq('id', logId);
-    set(state => ({
-      sessionLogs: state.sessionLogs.map(l => l.id === logId ? { ...l, status: 'rejected' } : l),
-    }));
+    if (!error) set(state => ({ sessionLogs: state.sessionLogs.map(l => l.id === logId ? { ...l, status: 'rejected' as const } : l) }));
   },
 
   setActiveCampaign: (campaign) => set({ activeCampaign: campaign }),
-
   clearError: () => set({ error: null }),
 }));
