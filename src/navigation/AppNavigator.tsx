@@ -1,7 +1,7 @@
 // src/navigation/AppNavigator.tsx
 
 import React, { useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, Text, ActivityIndicator, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -20,16 +20,13 @@ import CampaignDetailScreen from '../screens/CampaignDetailScreen';
 import CampaignFormScreen from '../screens/CampaignFormScreen';
 import SessionLogFormScreen from '../screens/SessionLogFormScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import PremiumScreen from '../screens/PremiumScreen';
 
 // ── Param lists ───────────────────────────────────────────────────────────────
 
 export type CharactersStackParamList = {
   CharactersList: undefined;
-  /** campaignId + campaignRules: création dans le contexte d'une campagne */
-  CharacterForm: {
-    characterId?: string;
-    campaignId?: string;
-  } | undefined;
+  CharacterForm: { characterId?: string; campaignId?: string } | undefined;
 };
 
 export type CampaignsStackParamList = {
@@ -46,7 +43,7 @@ export type MainTabParamList = {
   ProfileTab: undefined;
 };
 
-// ── Stack navigators ──────────────────────────────────────────────────────────
+// ── Navigateurs de pile ───────────────────────────────────────────────────────
 
 const CharStack = createNativeStackNavigator<CharactersStackParamList>();
 const CampStack = createNativeStackNavigator<CampaignsStackParamList>();
@@ -59,6 +56,21 @@ const headerOpts = {
   headerTitleStyle: { fontFamily: 'Cinzel', fontSize: 14, fontWeight: '700' as const },
   headerShadowVisible: false,
 };
+
+// ── Icônes textuelles légères (pas de dépendance native externe) ──────────────
+// Remplacer par @expo/vector-icons Ionicons si disponible après npm install
+type IconName = 'home' | 'shield' | 'map' | 'person' | 'star';
+
+function TabIcon({ name, color, size }: { name: IconName; color: string; size: number }) {
+  const MAP: Record<IconName, string> = {
+    home:   '⌂',
+    shield: '⛨',
+    map:    '⚔',
+    person: '◎',
+    star:   '✦',
+  };
+  return <Text style={{ fontSize: size * 0.85, color, lineHeight: size * 1.2 }}>{MAP[name]}</Text>;
+}
 
 function CharactersNavigator() {
   const { t } = useI18n();
@@ -110,6 +122,11 @@ function MainNavigator() {
   const insets = useSafeAreaInsets();
   const { t } = useI18n();
 
+  // Sur Android (particulièrement MagicOS/EMUI/ColorOS), les insets peuvent
+  // être sous-rapportés. On applique un padding minimum garanti.
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 16 : 0);
+  const TAB_BASE_HEIGHT = 56;
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -118,17 +135,16 @@ function MainNavigator() {
           backgroundColor: colors.deep,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          // Hauteur fixe + inset bas du téléphone (encoche home indicator)
-          height: 52 + insets.bottom,
-          paddingBottom: insets.bottom,
-          paddingTop: 6,
+          height: TAB_BASE_HEIGHT + bottomInset,
+          paddingBottom: bottomInset,
+          paddingTop: 8,
         },
         tabBarActiveTintColor: colors.gold2,
         tabBarInactiveTintColor: colors.muted,
         tabBarLabelStyle: {
           fontFamily: 'Cinzel',
           fontSize: 9,
-          letterSpacing: 0.6,
+          letterSpacing: 0.5,
           textTransform: 'uppercase',
           marginTop: 2,
         },
@@ -137,24 +153,53 @@ function MainNavigator() {
       <Tab.Screen
         name="HomeTab"
         component={HomeScreen}
-        options={{ tabBarLabel: 'Accueil' }}
+        options={{
+          tabBarLabel: t.nav?.home ?? 'Accueil',
+          tabBarIcon: ({ color, size }) => <TabIcon name="home" color={color} size={size} />,
+        }}
       />
       <Tab.Screen
         name="CharactersTab"
         component={CharactersNavigator}
-        options={{ tabBarLabel: 'Héros' }}
+        options={{
+          tabBarLabel: t.nav?.heroes ?? 'Héros',
+          tabBarIcon: ({ color, size }) => <TabIcon name="shield" color={color} size={size} />,
+        }}
       />
       <Tab.Screen
         name="CampaignsTab"
         component={CampaignsNavigator}
-        options={{ tabBarLabel: 'Campagnes' }}
+        options={{
+          tabBarLabel: t.nav?.campaigns ?? 'Campagnes',
+          tabBarIcon: ({ color, size }) => <TabIcon name="map" color={color} size={size} />,
+        }}
       />
       <Tab.Screen
         name="ProfileTab"
         component={ProfileScreen}
-        options={{ tabBarLabel: 'Profil' }}
+        options={{
+          tabBarLabel: t.nav?.profile ?? 'Profil',
+          tabBarIcon: ({ color, size }) => <TabIcon name="person" color={color} size={size} />,
+        }}
       />
     </Tab.Navigator>
+  );
+}
+
+// ── Écran Premium (modal) ─────────────────────────────────────────────────────
+
+const PremiumStack = createNativeStackNavigator();
+
+function RootNavigator() {
+  return (
+    <PremiumStack.Navigator screenOptions={{ headerShown: false, presentation: 'modal' }}>
+      <PremiumStack.Screen name="Main" component={MainNavigator} />
+      <PremiumStack.Screen
+        name="Premium"
+        component={PremiumScreen}
+        options={{ headerShown: true, ...headerOpts, title: 'Chronicles Premium' }}
+      />
+    </PremiumStack.Navigator>
   );
 }
 
@@ -181,7 +226,7 @@ const AppNavigator: React.FC = () => {
     <NavigationContainer>
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
         {session ? (
-          <RootStack.Screen name="Main" component={MainNavigator} />
+          <RootStack.Screen name="App" component={RootNavigator} />
         ) : (
           <RootStack.Screen name="Auth" component={LoginScreen} />
         )}
