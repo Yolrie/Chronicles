@@ -11,6 +11,7 @@ type CharacterInput = {
   background?: string;
   level?: number;
   game_system_id?: string;
+  campaign_id?: string;
   data_json?: CharacterData;
 };
 
@@ -20,6 +21,7 @@ interface CharactersState {
   error: string | null;
 
   fetchCharacters: () => Promise<void>;
+  fetchCampaignCharacters: (campaignId: string) => Promise<Character[]>;
   createCharacter: (input: CharacterInput) => Promise<Character | null>;
   updateCharacter: (id: string, updates: Partial<CharacterInput>) => Promise<void>;
   deleteCharacter: (id: string) => Promise<void>;
@@ -38,27 +40,37 @@ export const useCharactersStore = create<CharactersState>((set, get) => ({
       .from('characters')
       .select('*')
       .order('created_at', { ascending: false });
-    if (error) {
-      set({ loading: false, error: error.message });
-      return;
-    }
+    if (error) { set({ loading: false, error: error.message }); return; }
     set({ characters: data ?? [], loading: false });
+  },
+
+  fetchCampaignCharacters: async (campaignId) => {
+    const { data } = await supabase
+      .from('characters')
+      .select('*')
+      .eq('campaign_id', campaignId)
+      .order('created_at', { ascending: false });
+    return data ?? [];
   },
 
   createCharacter: async (input) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
-    set({ error: null });
+    set({ loading: true, error: null });
+
     const { data, error } = await supabase
       .from('characters')
-      .insert({ ...input, user_id: user.id, level: input.level ?? 1 })
+      .insert({
+        ...input,
+        user_id: user.id,
+        level: input.level ?? 1,
+        campaign_id: input.campaign_id ?? null,
+      })
       .select()
       .single();
-    if (error) {
-      set({ error: error.message });
-      return null;
-    }
-    set(state => ({ characters: [data, ...state.characters] }));
+
+    if (error) { set({ loading: false, error: error.message }); return null; }
+    set(state => ({ characters: [data, ...state.characters], loading: false }));
     return data;
   },
 
@@ -70,26 +82,17 @@ export const useCharactersStore = create<CharactersState>((set, get) => ({
       .eq('id', id)
       .select()
       .single();
-    if (error) {
-      set({ error: error.message });
-      return;
-    }
-    set(state => ({
-      characters: state.characters.map(c => c.id === id ? data : c),
-    }));
+    if (error) { set({ error: error.message }); return; }
+    set(state => ({ characters: state.characters.map(c => c.id === id ? data : c) }));
   },
 
   deleteCharacter: async (id) => {
     set({ error: null });
     const { error } = await supabase.from('characters').delete().eq('id', id);
-    if (error) {
-      set({ error: error.message });
-      return;
-    }
+    if (error) { set({ error: error.message }); return; }
     set(state => ({ characters: state.characters.filter(c => c.id !== id) }));
   },
 
   getCharacter: (id) => get().characters.find(c => c.id === id),
-
   clearError: () => set({ error: null }),
 }));
