@@ -63,6 +63,7 @@ export interface Character {
   id: string;
   user_id: string;
   game_system_id?: string;
+  campaign_id?: string;
   name: string;
   race?: string;
   class?: string;
@@ -81,6 +82,7 @@ export interface Campaign {
   name: string;
   description?: string;
   custom_form_json?: Record<string, unknown>;
+  rules_json?: Record<string, unknown>;
   invite_code: string;
   is_active: boolean;
   created_at: string;
