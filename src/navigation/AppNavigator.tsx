@@ -20,6 +20,10 @@ import CampaignDetailScreen from '../screens/CampaignDetailScreen';
 import CampaignFormScreen from '../screens/CampaignFormScreen';
 import SessionLogFormScreen from '../screens/SessionLogFormScreen';
 import ProfileScreen from '../screens/ProfileScreen';
+import BadgesScreen from '../screens/BadgesScreen';
+import FriendsScreen from '../screens/FriendsScreen';
+import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
+import SessionScheduleScreen from '../screens/SessionScheduleScreen';
 import PremiumScreen from '../screens/PremiumScreen';
 
 // ── Param lists ───────────────────────────────────────────────────────────────
@@ -34,6 +38,14 @@ export type CampaignsStackParamList = {
   CampaignForm: undefined;
   CampaignDetail: { campaignId: string };
   SessionLogForm: { campaignId: string };
+  SessionSchedule: { campaignId: string };
+};
+
+export type ProfileStackParamList = {
+  ProfileMain: undefined;
+  Badges: undefined;
+  Friends: undefined;
+  PrivacyPolicy: undefined;
 };
 
 export type MainTabParamList = {
@@ -47,6 +59,7 @@ export type MainTabParamList = {
 
 const CharStack = createNativeStackNavigator<CharactersStackParamList>();
 const CampStack = createNativeStackNavigator<CampaignsStackParamList>();
+const ProfStack = createNativeStackNavigator<ProfileStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const RootStack = createNativeStackNavigator();
 
@@ -114,7 +127,40 @@ function CampaignsNavigator() {
         component={SessionLogFormScreen}
         options={{ title: t.sessionLog.logSession }}
       />
+      <CampStack.Screen
+        name="SessionSchedule"
+        component={SessionScheduleScreen}
+        options={{ title: t.sessions.scheduleTitle }}
+      />
     </CampStack.Navigator>
+  );
+}
+
+function ProfileNavigator() {
+  const { t } = useI18n();
+  return (
+    <ProfStack.Navigator screenOptions={headerOpts}>
+      <ProfStack.Screen
+        name="ProfileMain"
+        component={ProfileScreen}
+        options={{ headerShown: false }}
+      />
+      <ProfStack.Screen
+        name="Badges"
+        component={BadgesScreen}
+        options={{ title: t.badges.title }}
+      />
+      <ProfStack.Screen
+        name="Friends"
+        component={FriendsScreen}
+        options={{ title: t.friends.title }}
+      />
+      <ProfStack.Screen
+        name="PrivacyPolicy"
+        component={PrivacyPolicyScreen}
+        options={{ title: t.profile.privacyPolicy }}
+      />
+    </ProfStack.Navigator>
   );
 }
 
@@ -176,7 +222,7 @@ function MainNavigator() {
       />
       <Tab.Screen
         name="ProfileTab"
-        component={ProfileScreen}
+        component={ProfileNavigator}
         options={{
           tabBarLabel: t.nav?.profile ?? 'Profil',
           tabBarIcon: ({ color, size }) => <TabIcon name="person" color={color} size={size} />,
