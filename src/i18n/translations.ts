@@ -6,6 +6,31 @@ export type Locale = 'fr' | 'en';
 const fr = {
   app: { name: 'Chronicles', tagline: 'Compagnon JDR' },
 
+  nav: {
+    home:      'Accueil',
+    heroes:    'Héros',
+    campaigns: 'Campagnes',
+    profile:   'Profil',
+    premium:   'Premium',
+  },
+
+  premium: {
+    title:       'Chronicles Premium',
+    subtitle:    'Fonctionnalités en cours de développement',
+    description: 'De nouvelles fonctionnalités arrivent pour enrichir votre expérience de jeu. Restez à l\'écoute !',
+    inDev:       'En cours de développement',
+    features: [
+      { icon: '🎲', title: 'Dés virtuels & lancers automatiques',     desc: 'Lancez tous vos dés directement dans l\'app, avec animations et historique.' },
+      { icon: '🧙', title: 'Générateur de PNJ',                        desc: 'Créez des personnages non-joueurs uniques en quelques secondes.' },
+      { icon: '🗺️', title: 'Cartes de campagne interactives',          desc: 'Dessinez et partagez vos maps avec vos joueurs en temps réel.' },
+      { icon: '📖', title: 'Compendium de sorts & capacités',           desc: 'Accédez à une bibliothèque complète de sorts, compétences et règles.' },
+      { icon: '🎒', title: 'Inventaire avancé',                         desc: 'Gérez l\'équipement, le poids et les objets magiques avec précision.' },
+      { icon: '🔔', title: 'Notifications de session',                  desc: 'Recevez des rappels avant chaque session et alertes MJ.' },
+      { icon: '📄', title: 'Export PDF de fiche de personnage',         desc: 'Générez une fiche de personnage imprimable en un clic.' },
+      { icon: '📶', title: 'Mode hors ligne',                           desc: 'Consultez vos personnages et campagnes sans connexion internet.' },
+    ],
+  },
+
   auth: {
     signIn: 'Connexion',
     signUp: 'Créer un compte',
@@ -216,6 +241,31 @@ const fr = {
 
 const en: typeof fr = {
   app: { name: 'Chronicles', tagline: 'Tabletop RPG Companion' },
+
+  nav: {
+    home:      'Home',
+    heroes:    'Heroes',
+    campaigns: 'Campaigns',
+    profile:   'Profile',
+    premium:   'Premium',
+  },
+
+  premium: {
+    title:       'Chronicles Premium',
+    subtitle:    'Features in Development',
+    description: 'New features are on their way to enrich your tabletop experience. Stay tuned!',
+    inDev:       'In Development',
+    features: [
+      { icon: '🎲', title: 'Virtual Dice & Auto Rolls',           desc: 'Roll all your dice directly in the app with animations and history.' },
+      { icon: '🧙', title: 'NPC Generator',                       desc: 'Generate unique non-player characters in seconds.' },
+      { icon: '🗺️', title: 'Interactive Campaign Maps',           desc: 'Draw and share your maps with players in real time.' },
+      { icon: '📖', title: 'Spells & Abilities Compendium',       desc: 'Access a full library of spells, abilities, and rules.' },
+      { icon: '🎒', title: 'Advanced Inventory',                  desc: 'Manage equipment, weight, and magic items precisely.' },
+      { icon: '🔔', title: 'Session Notifications',               desc: 'Receive reminders before each session and GM alerts.' },
+      { icon: '📄', title: 'Character Sheet PDF Export',          desc: 'Generate a printable character sheet in one tap.' },
+      { icon: '📶', title: 'Offline Mode',                        desc: 'View your characters and campaigns without an internet connection.' },
+    ],
+  },
 
   auth: {
     signIn: 'Sign In',
