@@ -22,8 +22,14 @@ export interface CampaignSession {
 export interface CampaignRules {
   allowed_races?: string[];
   allowed_classes?: string[];
+  allowed_backgrounds?: string[];
+  allowed_hair_colors?: string[];
+  allowed_eye_colors?: string[];
+  allowed_skin_tones?: string[];
+  personality_presets?: string[];
   stat_method?: 'standard_array' | 'point_buy' | 'roll';
   gm_notes?: string;
+  campaign_intro?: string;
   stages?: { name: string; description: string }[];
 }
 
