@@ -120,152 +120,169 @@ const LoginScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* ── Card ────────────────────────────────────────────────────── */}
-          <View style={styles.card}>
-            {/* Gold accent bar at top of card */}
-            <View style={styles.cardTopBar} />
+          {/* ── Card with double-border simulation ──────────────────────── */}
+          {/* Outer border frame */}
+          <View style={styles.cardOuter}>
+            {/* Corner diamonds — absolute positioned */}
+            <Text style={[styles.cornerDiamond, styles.cornerTL]}>◆</Text>
+            <Text style={[styles.cornerDiamond, styles.cornerTR]}>◆</Text>
+            <Text style={[styles.cornerDiamond, styles.cornerBL]}>◆</Text>
+            <Text style={[styles.cornerDiamond, styles.cornerBR]}>◆</Text>
 
-            {/* Mode toggle tabs */}
-            <View style={styles.toggleTabs}>
-              <TouchableOpacity
-                style={[styles.toggleTab, mode === 'signin' && styles.toggleTabActive]}
-                onPress={() => switchMode('signin')}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.toggleTabText, mode === 'signin' && styles.toggleTabTextActive]}>
-                  {t.auth.signIn}
-                </Text>
-                {mode === 'signin' && <View style={styles.toggleTabUnderline} />}
-              </TouchableOpacity>
+            {/* Inner card */}
+            <View style={styles.card}>
+              {/* Gold accent bar at top of card */}
+              <View style={styles.cardTopBar} />
 
-              <View style={styles.toggleTabDivider} />
+              {/* Mode toggle tabs */}
+              <View style={styles.toggleTabs}>
+                <TouchableOpacity
+                  style={[styles.toggleTab, mode === 'signin' && styles.toggleTabActive]}
+                  onPress={() => switchMode('signin')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.toggleTabText, mode === 'signin' && styles.toggleTabTextActive]}>
+                    {t.auth.signIn}
+                  </Text>
+                  {mode === 'signin' && <View style={styles.toggleTabUnderline} />}
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.toggleTab, mode === 'signup' && styles.toggleTabActive]}
-                onPress={() => switchMode('signup')}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.toggleTabText, mode === 'signup' && styles.toggleTabTextActive]}>
-                  {t.auth.signUp}
-                </Text>
-                {mode === 'signup' && <View style={styles.toggleTabUnderline} />}
-              </TouchableOpacity>
-            </View>
+                <View style={styles.toggleTabDivider} />
 
-            {/* ── Inline error ── */}
-            {displayError ? (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorIcon}>◆</Text>
-                <Text style={styles.errorText}>{displayError}</Text>
+                <TouchableOpacity
+                  style={[styles.toggleTab, mode === 'signup' && styles.toggleTabActive]}
+                  onPress={() => switchMode('signup')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.toggleTabText, mode === 'signup' && styles.toggleTabTextActive]}>
+                    {t.auth.signUp}
+                  </Text>
+                  {mode === 'signup' && <View style={styles.toggleTabUnderline} />}
+                </TouchableOpacity>
               </View>
-            ) : null}
 
-            {/* ── Signup-only fields ── */}
-            {mode === 'signup' && (
-              <>
-                {/* Username */}
-                <View style={commonStyles.fieldWrap}>
-                  <Text style={commonStyles.fieldLabel}>{t.auth.username}</Text>
-                  <TextInput
-                    style={commonStyles.input}
-                    value={username}
-                    onChangeText={setUsername}
-                    placeholder="HeroOfLight"
-                    placeholderTextColor={colors.subtle}
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    maxLength={24}
-                  />
+              {/* ── Inline error ── */}
+              {displayError ? (
+                <View style={styles.errorBox}>
+                  <Text style={styles.errorIcon}>◆</Text>
+                  <Text style={styles.errorText}>{displayError}</Text>
                 </View>
+              ) : null}
 
-                {/* Role chips */}
-                <View style={commonStyles.fieldWrap}>
-                  <Text style={commonStyles.fieldLabel}>{t.auth.iAmA}</Text>
-                  <View style={styles.roleRow}>
-                    {(['player', 'game_master'] as const).map(r => (
-                      <TouchableOpacity
-                        key={r}
-                        style={[styles.roleChip, role === r && styles.roleChipActive]}
-                        onPress={() => setRole(r)}
-                        activeOpacity={0.75}
-                      >
-                        <Text style={styles.roleChipEmoji}>
-                          {r === 'player' ? '⚔' : '📜'}
-                        </Text>
-                        <Text style={[styles.roleChipText, role === r && styles.roleChipTextActive]}>
-                          {r === 'player' ? t.auth.player : t.auth.gameMaster}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+              {/* ── Signup-only fields ── */}
+              {mode === 'signup' && (
+                <>
+                  {/* Username */}
+                  <View style={commonStyles.fieldWrap}>
+                    <Text style={commonStyles.fieldLabel}>{t.auth.username}</Text>
+                    <TextInput
+                      style={commonStyles.input}
+                      value={username}
+                      onChangeText={setUsername}
+                      placeholder="HeroOfLight"
+                      placeholderTextColor={colors.subtle}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      maxLength={24}
+                    />
                   </View>
-                </View>
-              </>
-            )}
 
-            {/* Email */}
-            <View style={commonStyles.fieldWrap}>
-              <Text style={commonStyles.fieldLabel}>{t.auth.email}</Text>
-              <TextInput
-                style={commonStyles.input}
-                value={email}
-                onChangeText={setEmail}
-                placeholder="you@example.com"
-                placeholderTextColor={colors.subtle}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                textContentType="emailAddress"
-                autoCorrect={false}
-              />
-            </View>
+                  {/* Role chips */}
+                  <View style={commonStyles.fieldWrap}>
+                    <Text style={commonStyles.fieldLabel}>{t.auth.iAmA}</Text>
+                    <View style={styles.roleRow}>
+                      {(['player', 'game_master'] as const).map(r => (
+                        <TouchableOpacity
+                          key={r}
+                          style={[styles.roleChip, role === r && styles.roleChipActive]}
+                          onPress={() => setRole(r)}
+                          activeOpacity={0.75}
+                        >
+                          <Text style={styles.roleChipEmoji}>
+                            {r === 'player' ? '⚔' : '📜'}
+                          </Text>
+                          <Text style={[styles.roleChipText, role === r && styles.roleChipTextActive]}>
+                            {r === 'player' ? t.auth.player : t.auth.gameMaster}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                </>
+              )}
 
-            {/* Password */}
-            <View style={commonStyles.fieldWrap}>
-              <Text style={commonStyles.fieldLabel}>{t.auth.password}</Text>
-              <TextInput
-                style={commonStyles.input}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="••••••••"
-                placeholderTextColor={colors.subtle}
-                secureTextEntry
-                textContentType={mode === 'signup' ? 'newPassword' : 'password'}
-              />
-            </View>
-
-            {/* Confirm password — signup only */}
-            {mode === 'signup' && (
+              {/* Email */}
               <View style={commonStyles.fieldWrap}>
-                <Text style={commonStyles.fieldLabel}>{t.auth.confirmPassword}</Text>
+                <Text style={commonStyles.fieldLabel}>{t.auth.email}</Text>
                 <TextInput
                   style={commonStyles.input}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="you@example.com"
+                  placeholderTextColor={colors.subtle}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  textContentType="emailAddress"
+                  autoCorrect={false}
+                />
+              </View>
+
+              {/* Password */}
+              <View style={commonStyles.fieldWrap}>
+                <Text style={commonStyles.fieldLabel}>{t.auth.password}</Text>
+                <TextInput
+                  style={commonStyles.input}
+                  value={password}
+                  onChangeText={setPassword}
                   placeholder="••••••••"
                   placeholderTextColor={colors.subtle}
                   secureTextEntry
-                  textContentType="newPassword"
+                  textContentType={mode === 'signup' ? 'newPassword' : 'password'}
                 />
               </View>
-            )}
 
-            {/* Submit button */}
-            <TouchableOpacity
-              style={[
-                mode === 'signin' ? commonStyles.primaryCta : commonStyles.goldCta,
-                styles.submitBtn,
-              ]}
-              onPress={handleSubmit}
-              disabled={loading}
-              activeOpacity={0.82}
-            >
-              {loading ? (
-                <ActivityIndicator color={mode === 'signin' ? '#F2E8C6' : colors.deeper} />
-              ) : (
-                <Text style={mode === 'signin' ? commonStyles.primaryCtaText : commonStyles.goldCtaText}>
-                  {mode === 'signin' ? t.auth.enterChronicles : t.auth.forgeLegend}
-                </Text>
+              {/* Confirm password — signup only */}
+              {mode === 'signup' && (
+                <View style={commonStyles.fieldWrap}>
+                  <Text style={commonStyles.fieldLabel}>{t.auth.confirmPassword}</Text>
+                  <TextInput
+                    style={commonStyles.input}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    placeholder="••••••••"
+                    placeholderTextColor={colors.subtle}
+                    secureTextEntry
+                    textContentType="newPassword"
+                  />
+                </View>
               )}
-            </TouchableOpacity>
+
+              {/* Submit button */}
+              <TouchableOpacity
+                style={[
+                  mode === 'signin' ? commonStyles.primaryCta : commonStyles.goldCta,
+                  styles.submitBtn,
+                ]}
+                onPress={handleSubmit}
+                disabled={loading}
+                activeOpacity={0.82}
+              >
+                {loading ? (
+                  <ActivityIndicator color={mode === 'signin' ? '#F2E8C6' : colors.deeper} />
+                ) : (
+                  <Text style={mode === 'signin' ? commonStyles.primaryCtaText : commonStyles.goldCtaText}>
+                    {mode === 'signin' ? t.auth.enterChronicles : t.auth.forgeLegend}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* ── Decorative rune pattern between card and toggle ─────────── */}
+          <View style={styles.midRune}>
+            <View style={styles.runeLine} />
+            <Text style={styles.midRuneText}>᛭ ᚠ ᛭</Text>
+            <View style={styles.runeLine} />
           </View>
 
           {/* ── Toggle link ─────────────────────────────────────────────── */}
@@ -364,7 +381,7 @@ const styles = StyleSheet.create({
     fontFamily: typography.display,
     fontSize: 32,
     color: colors.gold2,
-    letterSpacing: 5,
+    letterSpacing: 6,
     fontWeight: '700',
     textShadowColor: 'rgba(201,168,76,0.30)',
     textShadowOffset: { width: 0, height: 0 },
@@ -372,17 +389,39 @@ const styles = StyleSheet.create({
   },
   // "Tabletop RPG Companion"
   logoSub: {
-    fontFamily: typography.body,
     fontSize: 12,
     color: colors.muted,
     letterSpacing: 2.5,
     textTransform: 'uppercase',
   },
 
+  // ── Card outer frame (double-border simulation) ───────────────────────────
+  cardOuter: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 5,
+    position: 'relative',
+    marginBottom: 0,
+  },
+
+  // Corner diamond decorators
+  cornerDiamond: {
+    position: 'absolute',
+    fontSize: 11,
+    color: colors.gold2,
+    zIndex: 10,
+    opacity: 0.75,
+  },
+  cornerTL: { top: -6, left: -2 },
+  cornerTR: { top: -6, right: -2 },
+  cornerBL: { bottom: -6, left: -2 },
+  cornerBR: { bottom: -6, right: -2 },
+
   // ── Card ────────────────────────────────────────────────────────────────────
   card: {
     backgroundColor: colors.deep,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border2,
     overflow: 'hidden',
@@ -462,7 +501,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     flex: 1,
-    fontFamily: typography.body,
     fontSize: 13,
     color: '#E07070',
     lineHeight: 19,
@@ -508,14 +546,29 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
+  // ── Mid decorative rune (between card and toggle link) ───────────────────
+  midRune: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 4,
+    opacity: 0.25,
+  },
+  midRuneText: {
+    fontFamily: typography.title,
+    fontSize: 12,
+    color: colors.gold2,
+    letterSpacing: 3,
+    marginHorizontal: 10,
+  },
+
   // ── Toggle link ──────────────────────────────────────────────────────────
   toggleWrap: {
     alignItems: 'center',
-    marginTop: 18,
+    marginTop: 10,
     padding: 8,
   },
   toggleText: {
-    fontFamily: typography.body,
     fontSize: 14,
     color: colors.muted,
     textDecorationLine: 'underline',

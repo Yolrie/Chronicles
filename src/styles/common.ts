@@ -1,63 +1,62 @@
 // src/styles/common.ts
 // Palette "Midnight Grimoire" — BG3-inspired dark fantasy
-// Deep forest greens, midnight blues, aged parchment, rich gold
+// Near-black stone, aged parchment, rich gold, deep crimson
 
 import { StyleSheet } from 'react-native';
 
 // ── Couleurs ──────────────────────────────────────────────────────────────────
 
 export const colors = {
-  // Fonds — Midnight blue foundation
-  ink:     '#0D1B2A',   // Fond principal — midnight blue
-  deep:    '#0E1F2E',   // Fond des cartes
-  deeper:  '#0A1520',   // Fond des éléments imbriqués
-  forest:  '#1A2E1A',   // Vert forêt profonde (panneaux spéciaux)
-  forestCard: '#192815',// Carte couleur forêt
+  // Fonds — stone-dark foundation
+  ink:     '#07080A',   // Near-black stone (deepest background)
+  deep:    '#0E1420',   // Dark slate (card backgrounds)
+  deeper:  '#090C14',   // Nested element background
+  forest:  '#1A2E1A',   // Deep forest green (special panels)
 
   // Parchemin — texte et surfaces claires
-  parchment:     '#F2E8C6', // Parchemin âgé — texte principal + bg parchemin
-  parchmentDark: '#D4C4A0', // Parchemin sombre
-  parchmentInk:  '#2C1810', // Encre foncée sur parchemin
+  parchment:     '#F2E8C6', // Aged parchment (main text + parchment bg)
+  parchmentDark: '#D4C4A0', // Darker parchment
+  parchmentInk:  '#2C1810', // Dark ink on parchment
 
   // Or — accent principal
-  gold:  '#9A7B30',   // Or sombre (bordures subtiles, labels)
-  gold2: '#C9A84C',   // Or principal (actifs, badges, highlights)
-  gold3: '#E8C870',   // Or brillant (emphase maximale)
-  amber: '#B8922A',   // Ambre (boutons secondaires)
+  gold:  '#9A7B30',   // Subtle gold (borders, labels)
+  gold2: '#C9A84C',   // Primary gold (active, badges, highlights)
+  gold3: '#E8C870',   // Bright gold (maximum emphasis)
+  amber: '#B8922A',   // Amber (secondary buttons)
 
   // Écarlate — action / danger
-  crimson:  '#8B1A1A', // Crimson profond (BG danger)
-  crimson2: '#C0392B', // Crimson vif (textes danger, CTA principal)
-  crimsonGlow: '#E74C3C', // Crimson brillant
+  crimson:     '#8B1A1A', // Deep crimson (danger backgrounds)
+  crimson2:    '#C0392B', // Vivid crimson (danger text, main CTA)
+  crimsonGlow: '#E74C3C', // Bright crimson glow
 
   // Fonctionnel
-  success: '#2A6B3A',
-  successBright: '#4CAF6E',
-  info:    '#1B4A6B',
+  success:      '#2A6B3A',
+  successBright:'#4CAF6E',
+  info:         '#0D1B2A',
 
   // Texte secondaire — bleu-gris froid (signature BG3)
-  muted:   '#7A9BB5', // Bleu-gris atténué
-  steel:   '#A8C5D8', // Bleu-acier secondaire
-  subtle:  '#4A6B80', // Très atténué
+  muted:   '#8BA4B8', // Muted blue-grey
+  steel:   '#A8C5D8', // Steel blue secondary
+  subtle:  '#4A6B80', // Very muted
 
   // Bordures — or subtil
-  border:       'rgba(201,168,76,0.2)',  // Bordure or subtile
-  border2:      'rgba(201,168,76,0.42)', // Bordure or visible
-  border3:      'rgba(201,168,76,0.65)', // Bordure or forte (accent)
-  borderSubtle: 'rgba(168,197,216,0.1)', // Bordure bleue subtile
+  border:       'rgba(201,168,76,0.18)', // Subtle gold border
+  border2:      'rgba(201,168,76,0.38)', // Visible gold border
+  border3:      'rgba(201,168,76,0.60)', // Strong gold border (accent)
+  borderSubtle: 'rgba(168,197,216,0.08)',// Subtle blue border
 
   // Utilitaires
-  glass: 'rgba(13,27,42,0.92)',
-  scrim: 'rgba(0,0,0,0.8)',
-  overlay: 'rgba(13,27,42,0.95)',
+  glass:   'rgba(7,8,10,0.94)',
+  scrim:   'rgba(0,0,0,0.85)',
+  overlay: 'rgba(7,8,10,0.97)',
 };
 
 // ── Typographie ────────────────────────────────────────────────────────────────
 
 export const typography = {
-  display: 'Cinzel Decorative',  // Titres décoratifs (écran d'accueil, logo)
-  title:   'Cinzel',             // Titres et labels (serif élégant)
-  body:    'EB Garamond',        // Corps de texte
+  display: 'Cinzel Decorative', // Decorative display titles (logo, big headers)
+  title:   'Cinzel',            // Section titles and labels (elegant serif)
+  body:    undefined,           // System font for body text (omit fontFamily)
 };
 
 // ── Ombre carte ────────────────────────────────────────────────────────────────
@@ -65,17 +64,17 @@ export const typography = {
 const cardShadow = {
   shadowColor: '#000',
   shadowOffset: { width: 0, height: 4 },
-  shadowOpacity: 0.4,
-  shadowRadius: 10,
-  elevation: 5,
+  shadowOpacity: 0.5,
+  shadowRadius: 12,
+  elevation: 6,
 };
 
 const goldGlow = {
   shadowColor: colors.gold2,
   shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.25,
-  shadowRadius: 8,
-  elevation: 4,
+  shadowOpacity: 0.28,
+  shadowRadius: 10,
+  elevation: 5,
 };
 
 // ── Styles communs ─────────────────────────────────────────────────────────────
@@ -96,7 +95,6 @@ export const commonStyles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   headerSubtitle: {
-    fontFamily: typography.body,
     fontSize: 13,
     color: colors.muted,
     marginTop: 4,
@@ -114,7 +112,33 @@ export const commonStyles = StyleSheet.create({
     ...cardShadow,
   },
 
-  // Carte parchemin — pour notes, journaux, histoires
+  // Stone card — even darker variant
+  stoneCard: {
+    backgroundColor: '#07080A',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border2,
+    padding: 16,
+    marginBottom: 12,
+    ...cardShadow,
+  },
+
+  // Parchment panel — cream background for notes/journal areas
+  parchmentPanel: {
+    backgroundColor: colors.parchment,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#8B7350',
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#3C2800',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+
+  // Carte parchemin — pour notes, journaux, histoires (alias)
   parchmentCard: {
     backgroundColor: '#F2E8C6',
     borderRadius: 10,
@@ -123,6 +147,17 @@ export const commonStyles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     ...cardShadow,
+  },
+
+  // ── Portrait frame ─────────────────────────────────────────────────────────
+  // Base for character/campaign portrait placeholders
+  portraitFrame: {
+    backgroundColor: colors.deep,
+    borderWidth: 1.5,
+    borderColor: colors.border2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
 
   // ── Champs ─────────────────────────────────────────────────────────────────
@@ -145,14 +180,13 @@ export const commonStyles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     color: colors.parchment,
-    fontFamily: typography.body,
     fontSize: 15,
-    backgroundColor: 'rgba(14,31,46,0.8)',
+    backgroundColor: 'rgba(9,12,20,0.9)',
   },
 
   // ── Boutons ────────────────────────────────────────────────────────────────
 
-  // Crimson — action principale (créer héros, confirmer)
+  // Crimson — main action
   primaryCta: {
     backgroundColor: colors.crimson,
     borderRadius: 8,
@@ -173,7 +207,7 @@ export const commonStyles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Or — action premium / fondation
+  // Gold — premium/foundational action
   goldCta: {
     borderRadius: 8,
     paddingVertical: 15,
@@ -188,13 +222,13 @@ export const commonStyles = StyleSheet.create({
   goldCtaText: {
     fontFamily: typography.title,
     fontSize: 11,
-    color: '#0A1520',
+    color: '#090C14',
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     fontWeight: '700',
   },
 
-  // Fantôme — action secondaire
+  // Ghost — secondary action
   ghostButton: {
     borderRadius: 8,
     borderWidth: 1,
@@ -272,7 +306,7 @@ export const commonStyles = StyleSheet.create({
 
   // ── Typographie ────────────────────────────────────────────────────────────
 
-  // Titre de section avec style BG3 — utiliser avec `◆ TITRE` dans le texte
+  // Section title — BG3 style — use with `◆ TITLE ◆` text
   sectionTitle: {
     fontFamily: typography.title,
     fontSize: 10,
@@ -282,13 +316,11 @@ export const commonStyles = StyleSheet.create({
     marginBottom: 10,
   },
   bodyText: {
-    fontFamily: typography.body,
     fontSize: 14,
     color: colors.parchment,
     lineHeight: 22,
   },
   mutedText: {
-    fontFamily: typography.body,
     fontSize: 13,
     color: colors.muted,
     lineHeight: 20,

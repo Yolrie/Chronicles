@@ -1,4 +1,5 @@
 // src/screens/ProfileScreen.tsx
+// Medieval fantasy style — stone dark + parchment accents
 
 import React, { useState } from 'react';
 import {
@@ -15,6 +16,40 @@ import { useI18n } from '../i18n';
 import { Locale } from '../i18n/translations';
 import { colors, commonStyles, typography } from '../styles/common';
 import { useChroniclesAlert } from '../components/AlertProvider';
+
+// ── Corner mark decorator ────────────────────────────────────────────────────
+const CornerMarks: React.FC<{ color?: string; size?: number }> = ({
+  color = colors.gold2,
+  size = 10,
+}) => (
+  <>
+    {/* TL */}
+    <View style={[cmk.h, { top: 0, left: 0, width: size, backgroundColor: color }]} />
+    <View style={[cmk.v, { top: 0, left: 0, height: size, backgroundColor: color }]} />
+    {/* TR */}
+    <View style={[cmk.h, { top: 0, right: 0, width: size, backgroundColor: color }]} />
+    <View style={[cmk.v, { top: 0, right: 0, height: size, backgroundColor: color }]} />
+    {/* BL */}
+    <View style={[cmk.h, { bottom: 0, left: 0, width: size, backgroundColor: color }]} />
+    <View style={[cmk.v, { bottom: 0, left: 0, height: size, backgroundColor: color }]} />
+    {/* BR */}
+    <View style={[cmk.h, { bottom: 0, right: 0, width: size, backgroundColor: color }]} />
+    <View style={[cmk.v, { bottom: 0, right: 0, height: size, backgroundColor: color }]} />
+  </>
+);
+const cmk = StyleSheet.create({
+  h: { position: 'absolute', height: 1.5 },
+  v: { position: 'absolute', width: 1.5 },
+});
+
+// ── Divider ornamental ────────────────────────────────────────────────────────
+const GoldDivider: React.FC = () => (
+  <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 16, opacity: 0.5 }}>
+    <View style={{ flex: 1, height: 1, backgroundColor: colors.gold }} />
+    <Text style={{ fontFamily: typography.title, fontSize: 10, color: colors.gold2, marginHorizontal: 10 }}>◆</Text>
+    <View style={{ flex: 1, height: 1, backgroundColor: colors.gold }} />
+  </View>
+);
 
 const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -45,8 +80,7 @@ const ProfileScreen: React.FC = () => {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
+      allowsEditing: false,
       quality: 0.75,
     });
     if (!result.canceled && result.assets[0]) {
@@ -84,24 +118,37 @@ const ProfileScreen: React.FC = () => {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* ── Avatar section ─────────────────────────────────────────────── */}
+        {/* ── Stone header strip ──────────────────────────────────────── */}
+        <View style={styles.pageHeader}>
+          <View style={styles.pageHeaderDecor}>
+            <View style={styles.headerLine} />
+            <Text style={styles.pageHeaderTitle}>◆ {t.profile.settings ?? 'Profil'} ◆</Text>
+            <View style={styles.headerLine} />
+          </View>
+        </View>
+
+        {/* ── Avatar portrait block ───────────────────────────────────── */}
         <View style={styles.profileBlock}>
-          <TouchableOpacity style={styles.avatarWrap} onPress={handlePickAvatar} activeOpacity={0.8}>
-            {profile?.avatar_url ? (
-              <Image source={{ uri: profile.avatar_url }} style={styles.avatarImg} />
-            ) : (
-              <View style={styles.avatarFallback}>
-                <Text style={styles.avatarLetter}>
-                  {profile?.username?.[0]?.toUpperCase() ?? '?'}
-                </Text>
-              </View>
-            )}
-            <View style={styles.avatarCameraBtn}>
-              {saving ? (
-                <ActivityIndicator size="small" color={colors.parchment} />
+          <TouchableOpacity onPress={handlePickAvatar} activeOpacity={0.8}>
+            <View style={styles.portraitFrame}>
+              <CornerMarks size={12} />
+              {profile?.avatar_url ? (
+                <Image source={{ uri: profile.avatar_url }} style={styles.portraitImg} />
               ) : (
-                <Text style={styles.avatarCameraIcon}>📷</Text>
+                <View style={styles.portraitFallback}>
+                  <Text style={styles.portraitSymbol}>◉</Text>
+                  <Text style={styles.portraitLetter}>
+                    {profile?.username?.[0]?.toUpperCase() ?? '?'}
+                  </Text>
+                </View>
               )}
+              {/* Camera badge */}
+              <View style={styles.cameraBadge}>
+                {saving
+                  ? <ActivityIndicator size="small" color={colors.parchment} />
+                  : <Text style={{ fontSize: 11 }}>📷</Text>
+                }
+              </View>
             </View>
           </TouchableOpacity>
 
@@ -109,199 +156,169 @@ const ProfileScreen: React.FC = () => {
           <Text style={[commonStyles.badge, commonStyles.badgePurple, { alignSelf: 'center', marginTop: 6 }]}>
             {t.profile.roles[profile?.role ?? 'player']}
           </Text>
+          <Text style={styles.avatarHint}>Appuyez pour changer l'avatar</Text>
         </View>
 
-        {/* ── Stats bar ──────────────────────────────────────────────────── */}
+        {/* ── Stats bar ──────────────────────────────────────────────── */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
+          <View style={styles.statCell}>
             <Text style={styles.statNum}>{characters.length}</Text>
             <Text style={styles.statLab}>{t.profile.heroes}</Text>
           </View>
           <View style={styles.statDiv} />
-          <View style={styles.statCard}>
+          <View style={styles.statCell}>
             <Text style={styles.statNum}>{gmCampaigns}</Text>
             <Text style={styles.statLab}>{t.profile.gmd}</Text>
           </View>
           <View style={styles.statDiv} />
-          <View style={styles.statCard}>
+          <View style={styles.statCell}>
             <Text style={styles.statNum}>{playerCampaigns}</Text>
             <Text style={styles.statLab}>{t.profile.played}</Text>
           </View>
         </View>
 
-        {/* ── Profile settings card ──────────────────────────────────────── */}
-        <View style={styles.settingsCard}>
-          <View style={styles.cardHeader}>
-            <Text style={commonStyles.sectionTitle}>◆ {t.profile.settings}</Text>
-            {!editMode && (
-              <TouchableOpacity
-                onPress={() => {
-                  setEditMode(true);
-                  setUsername(profile?.username ?? '');
-                  setRole(profile?.role ?? 'player');
-                }}
-              >
-                <Text style={styles.editBtn}>{t.profile.edit}</Text>
-              </TouchableOpacity>
+        {/* ── Settings card ───────────────────────────────────────────── */}
+        <View style={styles.card}>
+          <View style={styles.cardGoldBar} />
+          <View style={styles.cardInner}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>◆ {t.profile.settings}</Text>
+              {!editMode && (
+                <TouchableOpacity onPress={() => { setEditMode(true); setUsername(profile?.username ?? ''); setRole(profile?.role ?? 'player'); }}>
+                  <Text style={styles.editBtn}>{t.profile.edit}</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {editMode ? (
+              <>
+                <View style={commonStyles.fieldWrap}>
+                  <Text style={commonStyles.fieldLabel}>{t.profile.username}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={username}
+                    onChangeText={setUsername}
+                    autoCapitalize="none"
+                    maxLength={24}
+                    autoCorrect={false}
+                    placeholderTextColor={colors.muted}
+                  />
+                </View>
+                <View style={commonStyles.fieldWrap}>
+                  <Text style={commonStyles.fieldLabel}>{t.profile.role}</Text>
+                  <View style={styles.chipRow}>
+                    {ROLES.map(r => (
+                      <TouchableOpacity
+                        key={r.key}
+                        style={[styles.chip, role === r.key && styles.chipActive]}
+                        onPress={() => setRole(r.key)}
+                      >
+                        <Text style={[styles.chipText, role === r.key && styles.chipTextActive]}>{r.label}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity style={[commonStyles.primaryCta, { flex: 1 }, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
+                    {saving ? <ActivityIndicator color={colors.parchment} /> : <Text style={commonStyles.primaryCtaText}>{t.profile.save}</Text>}
+                  </TouchableOpacity>
+                  <TouchableOpacity style={commonStyles.ghostButton} onPress={() => setEditMode(false)}>
+                    <Text style={commonStyles.ghostButtonText}>{t.profile.cancel}</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>{t.profile.username}</Text>
+                  <Text style={styles.infoValue}>{profile?.username ?? '—'}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>{t.profile.role}</Text>
+                  <Text style={styles.infoValue}>{t.profile.roles[profile?.role ?? 'player']}</Text>
+                </View>
+                <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
+                  <Text style={styles.infoLabel}>{t.profile.memberSince}</Text>
+                  <Text style={styles.infoValue}>
+                    {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('fr-FR') : '—'}
+                  </Text>
+                </View>
+              </>
             )}
           </View>
-
-          {editMode ? (
-            <>
-              <View style={commonStyles.fieldWrap}>
-                <Text style={commonStyles.fieldLabel}>{t.profile.username}</Text>
-                <TextInput
-                  style={commonStyles.input}
-                  value={username}
-                  onChangeText={setUsername}
-                  autoCapitalize="none"
-                  maxLength={24}
-                  autoCorrect={false}
-                  placeholderTextColor={colors.muted}
-                />
-              </View>
-              <View style={commonStyles.fieldWrap}>
-                <Text style={commonStyles.fieldLabel}>{t.profile.role}</Text>
-                <View style={styles.chipRow}>
-                  {ROLES.map(r => (
-                    <TouchableOpacity
-                      key={r.key}
-                      style={[styles.chip, role === r.key && styles.chipActive]}
-                      onPress={() => setRole(r.key)}
-                    >
-                      <Text style={[styles.chipText, role === r.key && styles.chipTextActive]}>
-                        {r.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity
-                  style={[commonStyles.primaryCta, { flex: 1 }, saving && { opacity: 0.6 }]}
-                  onPress={handleSave}
-                  disabled={saving}
-                >
-                  {saving
-                    ? <ActivityIndicator color={colors.parchment} />
-                    : <Text style={commonStyles.primaryCtaText}>{t.profile.save}</Text>
-                  }
-                </TouchableOpacity>
-                <TouchableOpacity style={commonStyles.ghostButton} onPress={() => setEditMode(false)}>
-                  <Text style={commonStyles.ghostButtonText}>{t.profile.cancel}</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          ) : (
-            <View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{t.profile.username}</Text>
-                <Text style={styles.infoValue}>{profile?.username ?? '—'}</Text>
-              </View>
-              <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{t.profile.role}</Text>
-                <Text style={styles.infoValue}>{t.profile.roles[profile?.role ?? 'player']}</Text>
-              </View>
-              <View style={[styles.infoRow, { borderBottomWidth: 0 }]}>
-                <Text style={styles.infoLabel}>{t.profile.memberSince}</Text>
-                <Text style={styles.infoValue}>
-                  {profile?.created_at
-                    ? new Date(profile.created_at).toLocaleDateString('fr-FR')
-                    : '—'}
-                </Text>
-              </View>
-            </View>
-          )}
         </View>
 
-        {/* ── Language card ──────────────────────────────────────────────── */}
-        <View style={styles.settingsCard}>
-          <Text style={[commonStyles.sectionTitle, { marginBottom: 14 }]}>
-            ◆ {t.profile.language}
-          </Text>
-          <View style={styles.chipRow}>
-            {LANGS.map(l => (
-              <TouchableOpacity
-                key={l.key}
-                style={[styles.chip, locale === l.key && styles.chipActive]}
-                onPress={() => setLocale(l.key)}
-              >
-                <Text style={[styles.chipText, locale === l.key && styles.chipTextActive]}>
-                  {l.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+        {/* ── Language card ───────────────────────────────────────────── */}
+        <View style={styles.card}>
+          <View style={styles.cardGoldBar} />
+          <View style={styles.cardInner}>
+            <Text style={[styles.cardTitle, { marginBottom: 14 }]}>◆ {t.profile.language}</Text>
+            <View style={styles.chipRow}>
+              {LANGS.map(l => (
+                <TouchableOpacity
+                  key={l.key}
+                  style={[styles.chip, locale === l.key && styles.chipActive]}
+                  onPress={() => setLocale(l.key)}
+                >
+                  <Text style={[styles.chipText, locale === l.key && styles.chipTextActive]}>{l.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         </View>
 
-        {/* ── Navigation cards ───────────────────────────────────────────── */}
-        <TouchableOpacity
-          style={styles.navCard}
-          onPress={() => navigation.navigate('Badges')}
-          activeOpacity={0.75}
-        >
-          <Text style={styles.navCardIcon}>🏆</Text>
+        <GoldDivider />
+
+        {/* ── Navigation cards ────────────────────────────────────────── */}
+        <TouchableOpacity style={styles.navCard} onPress={() => navigation.navigate('Badges')} activeOpacity={0.75}>
+          <View style={styles.navCardIcon}><Text style={{ fontSize: 20 }}>🏆</Text></View>
           <View style={{ flex: 1 }}>
             <Text style={styles.navCardTitle}>{t.profile.trophies}</Text>
           </View>
-          <Text style={styles.navCardArrow}>›</Text>
+          <Text style={styles.navArrow}>›</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.navCard}
-          onPress={() => navigation.navigate('Friends')}
-          activeOpacity={0.75}
-        >
-          <Text style={styles.navCardIcon}>⚔️</Text>
+        <TouchableOpacity style={styles.navCard} onPress={() => navigation.navigate('Friends')} activeOpacity={0.75}>
+          <View style={styles.navCardIcon}><Text style={{ fontSize: 20 }}>⚔️</Text></View>
           <View style={{ flex: 1 }}>
             <Text style={styles.navCardTitle}>{t.profile.companions}</Text>
           </View>
-          <Text style={styles.navCardArrow}>›</Text>
+          <Text style={styles.navArrow}>›</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.navCard, styles.premiumNavCard]}
-          onPress={() => navigation.navigate('Premium')}
-          activeOpacity={0.75}
-        >
-          <Text style={[styles.navCardIcon, { color: colors.gold3 }]}>✦</Text>
+        <TouchableOpacity style={[styles.navCard, styles.premiumCard]} onPress={() => navigation.navigate('Premium')} activeOpacity={0.75}>
+          <View style={[styles.navCardIcon, { backgroundColor: 'rgba(201,168,76,0.12)' }]}>
+            <Text style={{ fontSize: 18, color: colors.gold3 }}>✦</Text>
+          </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.navCardTitle, { color: colors.gold3 }]}>{t.nav.premium}</Text>
-            <Text style={[commonStyles.mutedText, { fontSize: 12, marginTop: 1 }]}>
-              {t.premium.subtitle}
-            </Text>
+            <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2 }}>{t.premium.subtitle}</Text>
           </View>
-          <Text style={[styles.navCardArrow, { color: colors.gold3 }]}>›</Text>
+          <Text style={[styles.navArrow, { color: colors.gold3 }]}>›</Text>
         </TouchableOpacity>
 
-        {/* ── About card ─────────────────────────────────────────────────── */}
-        <View style={styles.settingsCard}>
-          <Text style={[commonStyles.sectionTitle, { marginBottom: 10 }]}>
-            ◆ {t.profile.about}
-          </Text>
-          <Text style={[commonStyles.bodyText, { color: colors.muted, lineHeight: 22, fontSize: 14 }]}>
-            {t.profile.appDescription}
-          </Text>
-          <Text style={[commonStyles.mutedText, { marginTop: 10, marginBottom: 14, fontSize: 12 }]}>
-            {t.profile.version} 2.1.0
-          </Text>
-          <View style={styles.legalRow}>
-            <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
-              <Text style={styles.legalLink}>{t.profile.privacyPolicy}</Text>
-            </TouchableOpacity>
-            <Text style={styles.legalDot}>·</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Terms')}>
-              <Text style={styles.legalLink}>{t.profile.terms}</Text>
-            </TouchableOpacity>
+        {/* ── About card ──────────────────────────────────────────────── */}
+        <View style={[styles.card, { marginTop: 8 }]}>
+          <View style={styles.cardGoldBar} />
+          <View style={styles.cardInner}>
+            <Text style={[styles.cardTitle, { marginBottom: 10 }]}>◆ {t.profile.about}</Text>
+            <Text style={{ color: colors.muted, fontSize: 14, lineHeight: 22 }}>{t.profile.appDescription}</Text>
+            <Text style={{ color: colors.subtle, marginTop: 10, marginBottom: 14, fontSize: 12 }}>{t.profile.version} 2.1.0</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
+                <Text style={styles.legalLink}>{t.profile.privacyPolicy}</Text>
+              </TouchableOpacity>
+              <Text style={{ color: colors.muted }}>·</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Terms')}>
+                <Text style={styles.legalLink}>{t.profile.terms}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
-        {/* ── Sign out ───────────────────────────────────────────────────── */}
-        <TouchableOpacity
-          style={[commonStyles.dangerButton, styles.signOutBtn]}
-          onPress={handleSignOut}
-        >
-          <Text style={commonStyles.dangerButtonText}>{t.profile.signOut}</Text>
+        {/* ── Sign out ────────────────────────────────────────────────── */}
+        <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
+          <Text style={styles.signOutText}>{t.profile.signOut}</Text>
         </TouchableOpacity>
 
       </ScrollView>
@@ -311,192 +328,193 @@ const ProfileScreen: React.FC = () => {
 
 export default ProfileScreen;
 
+// ── Styles ────────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   safe:   { flex: 1, backgroundColor: colors.ink },
-  scroll: { paddingHorizontal: 16, paddingTop: 28, paddingBottom: 48 },
+  scroll: { paddingHorizontal: 16, paddingTop: 20, paddingBottom: 52 },
 
-  // ── Avatar ────────────────────────────────────────────────────────────────
-  profileBlock: { alignItems: 'center', marginBottom: 24 },
-  avatarWrap: { position: 'relative', marginBottom: 14 },
-  avatarImg: {
-    width: 96, height: 96, borderRadius: 48,
-    borderWidth: 2, borderColor: colors.border3,
+  // ── Page header ──────────────────────────────────────────────────────────
+  pageHeader: { marginBottom: 24 },
+  pageHeaderDecor: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  pageHeaderTitle: {
+    fontFamily: typography.title,
+    fontSize: 11,
+    color: colors.gold2,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
   },
-  avatarFallback: {
-    width: 96, height: 96, borderRadius: 48,
-    backgroundColor: 'rgba(180,140,60,0.08)',
-    borderWidth: 2, borderColor: colors.border3,
-    alignItems: 'center', justifyContent: 'center',
+  headerLine: { flex: 1, height: 1, backgroundColor: colors.border2 },
+
+  // ── Portrait block ───────────────────────────────────────────────────────
+  profileBlock: { alignItems: 'center', marginBottom: 20 },
+
+  portraitFrame: {
+    width: 100, height: 100,
+    backgroundColor: colors.deep,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+    overflow: 'visible',
   },
-  avatarLetter: {
+  portraitImg: { width: 100, height: 100, borderRadius: 4 },
+  portraitFallback: { alignItems: 'center', justifyContent: 'center', gap: 2 },
+  portraitSymbol: {
+    fontFamily: typography.title,
+    fontSize: 30,
+    color: colors.gold2,
+    opacity: 0.6,
+  },
+  portraitLetter: {
     fontFamily: typography.display,
-    fontSize: 36,
+    fontSize: 24,
     color: colors.gold2,
     fontWeight: '700',
   },
-  avatarCameraBtn: {
-    position: 'absolute', bottom: 0, right: -2,
+  cameraBadge: {
+    position: 'absolute', bottom: -10, right: -10,
     width: 28, height: 28, borderRadius: 14,
     backgroundColor: colors.deep,
-    borderWidth: 1, borderColor: colors.border2,
+    borderWidth: 1.5, borderColor: colors.border2,
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarCameraIcon: { fontSize: 14 },
+  avatarHint: {
+    fontSize: 10,
+    color: colors.subtle,
+    fontStyle: 'italic',
+    marginTop: 6,
+    letterSpacing: 0.3,
+  },
 
   displayName: {
     fontFamily: typography.display,
-    fontSize: 22,
+    fontSize: 20,
     color: colors.gold2,
     fontWeight: '700',
     letterSpacing: 0.5,
-    marginBottom: 2,
   },
 
-  // ── Stats bar ────────────────────────────────────────────────────────────
+  // ── Stats bar ─────────────────────────────────────────────────────────────
   statsRow: {
     flexDirection: 'row',
     backgroundColor: colors.deep,
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: colors.border2,
     overflow: 'hidden',
     marginBottom: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 4,
   },
-  statCard: { flex: 1, alignItems: 'center', paddingVertical: 18 },
-  statNum: {
-    fontFamily: typography.title,
-    fontSize: 24,
-    color: colors.gold2,
-    fontWeight: '700',
-  },
-  statLab: {
-    fontFamily: typography.body,
-    fontSize: 10,
-    color: colors.muted,
-    marginTop: 3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.9,
-  },
-  statDiv: { width: 1, backgroundColor: colors.border, marginVertical: 10 },
+  statCell: { flex: 1, alignItems: 'center', paddingVertical: 16 },
+  statNum: { fontFamily: typography.title, fontSize: 22, color: colors.gold2, fontWeight: '700' },
+  statLab: { fontSize: 9, color: colors.muted, marginTop: 3, textTransform: 'uppercase', letterSpacing: 0.9 },
+  statDiv: { width: 1, backgroundColor: colors.border, marginVertical: 8 },
 
-  // ── Settings / language card ─────────────────────────────────────────────
-  settingsCard: {
+  // ── Stone card ────────────────────────────────────────────────────────────
+  card: {
     backgroundColor: colors.deep,
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.border2,
-    padding: 16,
     marginBottom: 12,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 4,
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 14,
+  cardGoldBar: { height: 2, backgroundColor: colors.gold2, opacity: 0.7 },
+  cardInner: { padding: 16 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  cardTitle: {
+    fontFamily: typography.title,
+    fontSize: 10,
+    color: colors.gold2,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
   },
   editBtn: {
     fontFamily: typography.title,
-    fontSize: 11,
-    color: colors.gold,
+    fontSize: 10,
+    color: colors.amber,
     textTransform: 'uppercase',
-    letterSpacing: 1.0,
+    letterSpacing: 0.8,
   },
 
-  // Info rows (non-edit mode)
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 11,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  infoLabel: {
-    fontFamily: typography.body,
-    fontSize: 14,
-    color: colors.muted,
-  },
-  infoValue: {
-    fontFamily: typography.title,
-    fontSize: 13,
-    color: colors.parchment,
-    fontWeight: '600',
-  },
-
-  // Chips (role / language)
-  chipRow:       { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
+  // Input
+  input: {
     borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.border2,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    color: colors.parchment,
+    fontSize: 14,
+    backgroundColor: 'rgba(7,8,10,0.6)',
+  },
+
+  // Info rows
+  infoRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  infoLabel: { fontSize: 13, color: colors.muted },
+  infoValue: { fontFamily: typography.title, fontSize: 12, color: colors.parchment, fontWeight: '600' },
+
+  // Chips
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: {
+    borderRadius: 6, borderWidth: 1, borderColor: colors.border2,
+    paddingHorizontal: 14, paddingVertical: 9,
     backgroundColor: 'rgba(255,255,255,0.02)',
   },
-  chipActive:    { borderColor: colors.gold2, backgroundColor: 'rgba(201,168,76,0.10)' },
-  chipText:      {
-    fontFamily: typography.title,
-    fontSize: 10,
-    color: colors.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.7,
-  },
+  chipActive: { borderColor: colors.gold2, backgroundColor: 'rgba(201,168,76,0.10)' },
+  chipText: { fontFamily: typography.title, fontSize: 10, color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.7 },
   chipTextActive: { color: colors.gold2 },
 
-  // ── Navigation cards ─────────────────────────────────────────────────────
+  // ── Navigation cards ──────────────────────────────────────────────────────
   navCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
+    flexDirection: 'row', alignItems: 'center', gap: 14,
     backgroundColor: colors.deep,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: 16,
-    marginBottom: 10,
+    borderRadius: 10, borderWidth: 1, borderColor: colors.border,
+    padding: 14, marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 6, elevation: 3,
   },
-  premiumNavCard: {
-    borderColor: colors.border2,
-    backgroundColor: 'rgba(14,31,46,0.9)',
+  premiumCard: { borderColor: colors.border2, backgroundColor: 'rgba(14,20,32,0.9)' },
+  navCardIcon: {
+    width: 40, height: 40, borderRadius: 8,
+    backgroundColor: 'rgba(201,168,76,0.07)',
+    borderWidth: 1, borderColor: colors.border,
+    alignItems: 'center', justifyContent: 'center',
   },
-  navCardIcon:   { fontSize: 22 },
-  navCardTitle:  {
-    fontFamily: typography.title,
-    fontSize: 13,
-    color: colors.parchment,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  navCardArrow:  { fontSize: 20, color: colors.gold2 },
+  navCardTitle: { fontFamily: typography.title, fontSize: 13, color: colors.parchment, fontWeight: '700', letterSpacing: 0.3 },
+  navArrow: { fontSize: 20, color: colors.gold2 },
 
-  // ── Legal row ────────────────────────────────────────────────────────────
-  legalRow:  { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  legalLink: {
-    fontFamily: typography.body,
-    fontSize: 13,
-    color: colors.gold,
-    textDecorationLine: 'underline',
-  },
-  legalDot:  { color: colors.muted, fontSize: 13 },
+  // ── Legal / about ─────────────────────────────────────────────────────────
+  legalLink: { fontSize: 13, color: colors.amber, textDecorationLine: 'underline' },
 
-  // ── Sign out ─────────────────────────────────────────────────────────────
+  // ── Sign out ──────────────────────────────────────────────────────────────
   signOutBtn: {
+    marginTop: 14, borderRadius: 8,
+    borderWidth: 1, borderColor: 'rgba(192,57,43,0.30)',
+    paddingVertical: 13,
+    backgroundColor: 'rgba(139,26,26,0.10)',
     alignItems: 'center',
-    marginTop: 10,
+  },
+  signOutText: {
+    fontFamily: typography.title,
+    fontSize: 10,
+    color: '#E07070',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
   },
 });
