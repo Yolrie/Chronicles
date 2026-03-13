@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   RefreshControl,
   ActivityIndicator,
   TextInput,
@@ -19,6 +18,7 @@ import { CampaignsStackParamList } from '../navigation/AppNavigator';
 import { useCampaignsStore, CampaignRules } from '../stores/campaignsStore';
 import { useAuthStore } from '../stores/authStore';
 import { useI18n } from '../i18n';
+import { useChroniclesAlert } from '../components/AlertProvider';
 import { colors, commonStyles, typography } from '../styles/common';
 import { SessionLog } from '../types';
 
@@ -37,15 +37,39 @@ function StatusBadge({ status }: { status: SessionLog['status'] }) {
 function RulebookTab({ campaignId, isGM }: { campaignId: string; isGM: boolean }) {
   const { campaigns, updateCampaignRules } = useCampaignsStore();
   const { t } = useI18n();
+  const { showAlert } = useChroniclesAlert();
   const campaign = campaigns.find(c => c.id === campaignId);
   const current = (campaign?.rules_json ?? {}) as CampaignRules;
 
+  // Sync state when campaign rules update (after save)
   const [allowedRaces, setAllowedRaces] = useState((current.allowed_races ?? []).join(', '));
   const [allowedClasses, setAllowedClasses] = useState((current.allowed_classes ?? []).join(', '));
+  const [allowedBackgrounds, setAllowedBackgrounds] = useState((current.allowed_backgrounds ?? []).join(', '));
+  const [allowedHairColors, setAllowedHairColors] = useState((current.allowed_hair_colors ?? []).join(', '));
+  const [allowedEyeColors, setAllowedEyeColors] = useState((current.allowed_eye_colors ?? []).join(', '));
+  const [allowedSkinTones, setAllowedSkinTones] = useState((current.allowed_skin_tones ?? []).join(', '));
+  const [personalityPresets, setPersonalityPresets] = useState((current.personality_presets ?? []).join(', '));
   const [statMethod, setStatMethod] = useState<CampaignRules['stat_method']>(current.stat_method ?? 'standard_array');
   const [gmNotes, setGmNotes] = useState(current.gm_notes ?? '');
+  const [campaignIntro, setCampaignIntro] = useState(current.campaign_intro ?? '');
   const [stages, setStages] = useState<{ name: string; description: string }[]>(current.stages ?? []);
   const [saving, setSaving] = useState(false);
+
+  // Resync quand les règles changent depuis le store (après sauvegarde)
+  useEffect(() => {
+    const r = (campaign?.rules_json ?? {}) as CampaignRules;
+    setAllowedRaces((r.allowed_races ?? []).join(', '));
+    setAllowedClasses((r.allowed_classes ?? []).join(', '));
+    setAllowedBackgrounds((r.allowed_backgrounds ?? []).join(', '));
+    setAllowedHairColors((r.allowed_hair_colors ?? []).join(', '));
+    setAllowedEyeColors((r.allowed_eye_colors ?? []).join(', '));
+    setAllowedSkinTones((r.allowed_skin_tones ?? []).join(', '));
+    setPersonalityPresets((r.personality_presets ?? []).join(', '));
+    setStatMethod(r.stat_method ?? 'standard_array');
+    setGmNotes(r.gm_notes ?? '');
+    setCampaignIntro(r.campaign_intro ?? '');
+    setStages(r.stages ?? []);
+  }, [campaign?.rules_json]);
 
   function parseList(raw: string): string[] {
     return raw.split(',').map(s => s.trim()).filter(Boolean);
@@ -56,13 +80,21 @@ function RulebookTab({ campaignId, isGM }: { campaignId: string; isGM: boolean }
     const rules: CampaignRules = {
       allowed_races: parseList(allowedRaces),
       allowed_classes: parseList(allowedClasses),
+      allowed_backgrounds: parseList(allowedBackgrounds),
+      allowed_hair_colors: parseList(allowedHairColors),
+      allowed_eye_colors: parseList(allowedEyeColors),
+      allowed_skin_tones: parseList(allowedSkinTones),
+      personality_presets: parseList(personalityPresets),
       stat_method: statMethod,
       gm_notes: gmNotes || undefined,
+      campaign_intro: campaignIntro || undefined,
       stages: stages.filter(s => s.name.trim()),
     };
     const ok = await updateCampaignRules(campaignId, rules);
     setSaving(false);
-    if (ok) Alert.alert(t.campaigns.rulesSaved);
+    if (ok) {
+      showAlert({ icon: '✓', title: t.campaigns.rulesSaved, message: t.campaigns.rulesEditable, buttons: [{ text: 'OK' }] });
+    }
   }
 
   const statMethods: { key: CampaignRules['stat_method']; label: string }[] = [
@@ -71,137 +103,227 @@ function RulebookTab({ campaignId, isGM }: { campaignId: string; isGM: boolean }
     { key: 'roll', label: t.campaigns.statMethodRoll },
   ];
 
+  // ── Vue joueur ──
+  if (!isGM) {
+    const hasIntro = !!current.campaign_intro;
+    const hasNotes = !!current.gm_notes;
+    const hasStages = (current.stages ?? []).length > 0;
+    const hasRules = !!(current.allowed_races?.length || current.allowed_classes?.length || current.allowed_backgrounds?.length);
+
+    if (!hasIntro && !hasNotes && !hasStages && !hasRules) {
+      return (
+        <View style={[commonStyles.card, { alignItems: 'center', paddingVertical: 32, marginTop: 4 }]}>
+          <Text style={{ fontSize: 28, marginBottom: 12 }}>📜</Text>
+          <Text style={[commonStyles.mutedText, { textAlign: 'center' }]}>{t.campaigns.noRulesYet}</Text>
+        </View>
+      );
+    }
+
+    return (
+      <View>
+        {/* Intro de la campagne */}
+        {hasIntro && (
+          <View style={styles.introCard}>
+            <View style={styles.introCardBar} />
+            <Text style={styles.introCardTitle}>📜 {t.campaigns.campaignIntroTitle}</Text>
+            <Text style={styles.introCardText}>{current.campaign_intro}</Text>
+          </View>
+        )}
+
+        {/* Notes MJ */}
+        {hasNotes && (
+          <View style={[commonStyles.card, { marginBottom: 12 }]}>
+            <Text style={commonStyles.sectionTitle}>{t.campaigns.gmNotes}</Text>
+            <Text style={[commonStyles.bodyText, { color: colors.muted, marginTop: 8, lineHeight: 20 }]}>{current.gm_notes}</Text>
+          </View>
+        )}
+
+        {/* Règles résumées pour le joueur */}
+        {hasRules && (
+          <View style={[commonStyles.card, { marginBottom: 12 }]}>
+            <Text style={[commonStyles.sectionTitle, { marginBottom: 10 }]}>{t.campaigns.playerRulesTitle}</Text>
+            {current.allowed_races?.length ? (
+              <View style={styles.ruleRow}>
+                <Text style={styles.ruleLabel}>{t.campaigns.allowedRaces.split(' (')[0]}</Text>
+                <Text style={styles.ruleValue}>{current.allowed_races.join(', ')}</Text>
+              </View>
+            ) : null}
+            {current.allowed_classes?.length ? (
+              <View style={styles.ruleRow}>
+                <Text style={styles.ruleLabel}>{t.campaigns.allowedClasses.split(' (')[0]}</Text>
+                <Text style={styles.ruleValue}>{current.allowed_classes.join(', ')}</Text>
+              </View>
+            ) : null}
+            {current.allowed_backgrounds?.length ? (
+              <View style={styles.ruleRow}>
+                <Text style={styles.ruleLabel}>{t.campaigns.allowedBackgrounds.split(' (')[0]}</Text>
+                <Text style={styles.ruleValue}>{current.allowed_backgrounds.join(', ')}</Text>
+              </View>
+            ) : null}
+            {statMethod && (
+              <View style={[styles.ruleRow, { borderBottomWidth: 0 }]}>
+                <Text style={styles.ruleLabel}>{t.campaigns.statMethod}</Text>
+                <Text style={styles.ruleValue}>{statMethods.find(m => m.key === current.stat_method)?.label ?? '—'}</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Étapes */}
+        {hasStages && (
+          <View style={[commonStyles.card, { marginBottom: 12 }]}>
+            <Text style={commonStyles.sectionTitle}>{t.campaigns.campaignStages}</Text>
+            {(current.stages ?? []).map((s, i) => (
+              <View key={i} style={styles.stageRow}>
+                <View style={styles.stageDot} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.stageName}>{s.name}</Text>
+                  {s.description ? <Text style={styles.stageDesc}>{s.description}</Text> : null}
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  }
+
+  // ── Vue MJ ──
   return (
     <View>
-      {/* Notes MJ — visibles par tout le monde */}
-      {!isGM && gmNotes ? (
-        <View style={[commonStyles.card, { marginBottom: 12 }]}>
-          <Text style={commonStyles.sectionTitle}>{t.campaigns.gmNotes}</Text>
-          <Text style={[commonStyles.bodyText, { color: colors.muted, marginTop: 8, lineHeight: 20 }]}>{gmNotes}</Text>
-        </View>
-      ) : null}
+      <Text style={[commonStyles.sectionTitle, { marginBottom: 4 }]}>{t.campaigns.rulebookTitle}</Text>
+      <Text style={[commonStyles.mutedText, { marginBottom: 4 }]}>{t.campaigns.rulebookSubtitle}</Text>
+      <Text style={[commonStyles.mutedText, { marginBottom: 16, color: colors.gold, fontStyle: 'italic' }]}>✏ {t.campaigns.rulesEditable}</Text>
 
-      {/* Étapes — visibles par tout le monde */}
-      {stages.length > 0 && (
-        <View style={[commonStyles.card, { marginBottom: 12 }]}>
-          <Text style={commonStyles.sectionTitle}>{t.campaigns.campaignStages}</Text>
-          {stages.map((s, i) => (
-            <View key={i} style={styles.stageRow}>
-              <View style={styles.stageDot} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.stageName}>{s.name}</Text>
-                {s.description ? <Text style={styles.stageDesc}>{s.description}</Text> : null}
-              </View>
-            </View>
+      {/* Introduction de la campagne */}
+      <View style={commonStyles.fieldWrap}>
+        <Text style={commonStyles.fieldLabel}>{t.campaigns.campaignIntro}</Text>
+        <Text style={[commonStyles.mutedText, { marginBottom: 6, fontSize: 11 }]}>{t.campaigns.campaignIntroVisible}</Text>
+        <TextInput
+          style={[commonStyles.input, { minHeight: 100, textAlignVertical: 'top' }]}
+          value={campaignIntro}
+          onChangeText={setCampaignIntro}
+          placeholder={t.campaigns.campaignIntroPlaceholder}
+          placeholderTextColor={colors.muted}
+          multiline
+        />
+      </View>
+
+      {/* Races */}
+      <View style={commonStyles.fieldWrap}>
+        <Text style={commonStyles.fieldLabel}>{t.campaigns.allowedRaces}</Text>
+        <TextInput style={commonStyles.input} value={allowedRaces} onChangeText={setAllowedRaces} placeholder="Humain, Elfe, Nain..." placeholderTextColor={colors.muted} />
+      </View>
+
+      {/* Classes */}
+      <View style={commonStyles.fieldWrap}>
+        <Text style={commonStyles.fieldLabel}>{t.campaigns.allowedClasses}</Text>
+        <TextInput style={commonStyles.input} value={allowedClasses} onChangeText={setAllowedClasses} placeholder="Guerrier, Magicien, Roublard..." placeholderTextColor={colors.muted} />
+      </View>
+
+      {/* Historiques */}
+      <View style={commonStyles.fieldWrap}>
+        <Text style={commonStyles.fieldLabel}>{t.campaigns.allowedBackgrounds}</Text>
+        <TextInput style={commonStyles.input} value={allowedBackgrounds} onChangeText={setAllowedBackgrounds} placeholder="Acolyte, Soldat, Noble..." placeholderTextColor={colors.muted} />
+      </View>
+
+      {/* Méthode de stats */}
+      <View style={commonStyles.fieldWrap}>
+        <Text style={commonStyles.fieldLabel}>{t.campaigns.statMethod}</Text>
+        <View style={styles.methodRow}>
+          {statMethods.map(m => (
+            <TouchableOpacity key={m.key} style={[styles.methodChip, statMethod === m.key && styles.methodChipActive]} onPress={() => setStatMethod(m.key)}>
+              <Text style={[styles.methodText, statMethod === m.key && styles.methodTextActive]}>{m.label}</Text>
+            </TouchableOpacity>
           ))}
         </View>
-      )}
+      </View>
 
-      {/* Formulaire MJ */}
-      {isGM && (
-        <View>
-          <Text style={[commonStyles.sectionTitle, { marginBottom: 4 }]}>{t.campaigns.rulebookTitle}</Text>
-          <Text style={[commonStyles.mutedText, { marginBottom: 16 }]}>{t.campaigns.rulebookSubtitle}</Text>
+      {/* Séparateur Apparence */}
+      <View style={styles.sectionDivider}>
+        <Text style={styles.sectionDividerText}>Apparence physique</Text>
+      </View>
 
-          <View style={commonStyles.fieldWrap}>
-            <Text style={commonStyles.fieldLabel}>{t.campaigns.allowedRaces}</Text>
-            <TextInput
-              style={commonStyles.input}
-              value={allowedRaces}
-              onChangeText={setAllowedRaces}
-              placeholder="Humain, Elfe, Nain..."
-              placeholderTextColor={colors.muted}
-            />
-          </View>
+      {/* Couleurs de cheveux */}
+      <View style={commonStyles.fieldWrap}>
+        <Text style={commonStyles.fieldLabel}>{t.campaigns.allowedHairColors}</Text>
+        <TextInput style={commonStyles.input} value={allowedHairColors} onChangeText={setAllowedHairColors} placeholder="Noir, Brun, Blond, Roux..." placeholderTextColor={colors.muted} />
+      </View>
 
-          <View style={commonStyles.fieldWrap}>
-            <Text style={commonStyles.fieldLabel}>{t.campaigns.allowedClasses}</Text>
-            <TextInput
-              style={commonStyles.input}
-              value={allowedClasses}
-              onChangeText={setAllowedClasses}
-              placeholder="Guerrier, Magicien, Roublard..."
-              placeholderTextColor={colors.muted}
-            />
-          </View>
+      {/* Couleurs des yeux */}
+      <View style={commonStyles.fieldWrap}>
+        <Text style={commonStyles.fieldLabel}>{t.campaigns.allowedEyeColors}</Text>
+        <TextInput style={commonStyles.input} value={allowedEyeColors} onChangeText={setAllowedEyeColors} placeholder="Marron, Bleu, Vert, Or..." placeholderTextColor={colors.muted} />
+      </View>
 
-          <View style={commonStyles.fieldWrap}>
-            <Text style={commonStyles.fieldLabel}>{t.campaigns.statMethod}</Text>
-            <View style={styles.methodRow}>
-              {statMethods.map(m => (
-                <TouchableOpacity
-                  key={m.key}
-                  style={[styles.methodChip, statMethod === m.key && styles.methodChipActive]}
-                  onPress={() => setStatMethod(m.key)}
-                >
-                  <Text style={[styles.methodText, statMethod === m.key && styles.methodTextActive]}>{m.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+      {/* Teintes de peau */}
+      <View style={commonStyles.fieldWrap}>
+        <Text style={commonStyles.fieldLabel}>{t.campaigns.allowedSkinTones}</Text>
+        <TextInput style={commonStyles.input} value={allowedSkinTones} onChangeText={setAllowedSkinTones} placeholder="Claire, Olivâtre, Foncée..." placeholderTextColor={colors.muted} />
+      </View>
 
-          <View style={commonStyles.fieldWrap}>
-            <Text style={commonStyles.fieldLabel}>{t.campaigns.gmNotes}</Text>
-            <TextInput
-              style={[commonStyles.input, { minHeight: 80, textAlignVertical: 'top' }]}
-              value={gmNotes}
-              onChangeText={setGmNotes}
-              placeholder="Notes visibles par les joueurs..."
-              placeholderTextColor={colors.muted}
-              multiline
-            />
-          </View>
+      {/* Séparateur Personnalité */}
+      <View style={styles.sectionDivider}>
+        <Text style={styles.sectionDividerText}>Personnalité</Text>
+      </View>
 
-          {/* Étapes */}
-          <Text style={commonStyles.fieldLabel}>{t.campaigns.campaignStages}</Text>
-          {stages.map((s, i) => (
-            <View key={i} style={styles.stageEditor}>
-              <TextInput
-                style={[commonStyles.input, { marginBottom: 6 }]}
-                value={s.name}
-                onChangeText={v => setStages(prev => prev.map((st, idx) => idx === i ? { ...st, name: v } : st))}
-                placeholder={t.campaigns.stageName}
-                placeholderTextColor={colors.muted}
-              />
-              <TextInput
-                style={[commonStyles.input, { minHeight: 56, textAlignVertical: 'top', marginBottom: 4 }]}
-                value={s.description}
-                onChangeText={v => setStages(prev => prev.map((st, idx) => idx === i ? { ...st, description: v } : st))}
-                placeholder={t.campaigns.stageDesc}
-                placeholderTextColor={colors.muted}
-                multiline
-              />
-              <TouchableOpacity onPress={() => setStages(prev => prev.filter((_, idx) => idx !== i))}>
-                <Text style={[commonStyles.dangerButtonText, { textAlign: 'right' }]}>✕ Supprimer</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-          <TouchableOpacity
-            style={[commonStyles.ghostButton, { marginBottom: 12 }]}
-            onPress={() => setStages(prev => [...prev, { name: '', description: '' }])}
-          >
-            <Text style={commonStyles.ghostButtonText}>{t.campaigns.addStage}</Text>
-          </TouchableOpacity>
+      {/* Présets personnalité */}
+      <View style={commonStyles.fieldWrap}>
+        <Text style={commonStyles.fieldLabel}>{t.campaigns.personalityPresetsField}</Text>
+        <TextInput style={commonStyles.input} value={personalityPresets} onChangeText={setPersonalityPresets} placeholder="Courageux, Loyal, Impulsif..." placeholderTextColor={colors.muted} />
+      </View>
 
-          <TouchableOpacity
-            style={[commonStyles.goldCta, saving && { opacity: 0.6 }]}
-            onPress={handleSave}
-            disabled={saving}
-          >
-            {saving ? <ActivityIndicator color="#1a0e00" /> : (
-              <Text style={commonStyles.goldCtaText}>{t.campaigns.saveRules}</Text>
-            )}
+      {/* Séparateur Notes */}
+      <View style={styles.sectionDivider}>
+        <Text style={styles.sectionDividerText}>Notes & Étapes</Text>
+      </View>
+
+      {/* Notes MJ */}
+      <View style={commonStyles.fieldWrap}>
+        <Text style={commonStyles.fieldLabel}>{t.campaigns.gmNotes}</Text>
+        <TextInput
+          style={[commonStyles.input, { minHeight: 80, textAlignVertical: 'top' }]}
+          value={gmNotes}
+          onChangeText={setGmNotes}
+          placeholder="Notes additionnelles visibles par les joueurs..."
+          placeholderTextColor={colors.muted}
+          multiline
+        />
+      </View>
+
+      {/* Étapes de la campagne */}
+      <Text style={commonStyles.fieldLabel}>{t.campaigns.campaignStages}</Text>
+      {stages.map((s, i) => (
+        <View key={i} style={styles.stageEditor}>
+          <TextInput
+            style={[commonStyles.input, { marginBottom: 6 }]}
+            value={s.name}
+            onChangeText={v => setStages(prev => prev.map((st, idx) => idx === i ? { ...st, name: v } : st))}
+            placeholder={t.campaigns.stageName}
+            placeholderTextColor={colors.muted}
+          />
+          <TextInput
+            style={[commonStyles.input, { minHeight: 56, textAlignVertical: 'top', marginBottom: 4 }]}
+            value={s.description}
+            onChangeText={v => setStages(prev => prev.map((st, idx) => idx === i ? { ...st, description: v } : st))}
+            placeholder={t.campaigns.stageDesc}
+            placeholderTextColor={colors.muted}
+            multiline
+          />
+          <TouchableOpacity onPress={() => setStages(prev => prev.filter((_, idx) => idx !== i))}>
+            <Text style={[commonStyles.dangerButtonText, { textAlign: 'right' }]}>✕ Supprimer</Text>
           </TouchableOpacity>
         </View>
-      )}
+      ))}
+      <TouchableOpacity style={[commonStyles.ghostButton, { marginBottom: 12 }]} onPress={() => setStages(prev => [...prev, { name: '', description: '' }])}>
+        <Text style={commonStyles.ghostButtonText}>{t.campaigns.addStage}</Text>
+      </TouchableOpacity>
 
-      {!isGM && stages.length === 0 && !gmNotes && (
-        <View style={[commonStyles.card, { alignItems: 'center', paddingVertical: 24 }]}>
-          <Text style={[commonStyles.mutedText, { textAlign: 'center' }]}>
-            Le Maître du Jeu n'a pas encore défini de règles pour cette campagne.
-          </Text>
-        </View>
-      )}
+      <TouchableOpacity style={[commonStyles.goldCta, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
+        {saving ? <ActivityIndicator color="#1a0e00" /> : (
+          <Text style={commonStyles.goldCtaText}>{t.campaigns.saveRules}</Text>
+        )}
+      </TouchableOpacity>
     </View>
   );
 }
@@ -212,6 +334,7 @@ const CampaignDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { campaignId } = route.params;
   const { user } = useAuthStore();
   const { t } = useI18n();
+  const { showAlert } = useChroniclesAlert();
   const {
     campaigns, campaignPlayers, sessionLogs,
     fetchCampaignPlayers, fetchSessionLogs,
@@ -242,17 +365,25 @@ const CampaignDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   }
 
   function handleLeave() {
-    Alert.alert(t.campaigns.leaveConfirm, '', [
-      { text: t.common.cancel, style: 'cancel' },
-      { text: t.campaigns.leave, style: 'destructive', onPress: async () => { await leaveCampaign(campaignId); navigation.goBack(); } },
-    ]);
+    showAlert({
+      icon: '🚪',
+      title: t.campaigns.leaveConfirm,
+      buttons: [
+        { text: t.common.cancel, style: 'cancel' },
+        { text: t.campaigns.leave, style: 'destructive', onPress: async () => { await leaveCampaign(campaignId); navigation.goBack(); } },
+      ],
+    });
   }
 
   function handleDelete() {
-    Alert.alert(t.campaigns.archiveConfirm, '', [
-      { text: t.common.cancel, style: 'cancel' },
-      { text: t.campaigns.archive, style: 'destructive', onPress: async () => { await deleteCampaign(campaignId); navigation.goBack(); } },
-    ]);
+    showAlert({
+      icon: '⚠',
+      title: t.campaigns.archiveConfirm,
+      buttons: [
+        { text: t.common.cancel, style: 'cancel' },
+        { text: t.campaigns.archive, style: 'destructive', onPress: async () => { await deleteCampaign(campaignId); navigation.goBack(); } },
+      ],
+    });
   }
 
   if (!campaign) {
@@ -285,35 +416,26 @@ const CampaignDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </View>
 
-        {/* Bouton planifier une session (GM uniquement) */}
+        {/* Bouton planifier session (GM) */}
         {isGM && (
-          <TouchableOpacity
-            style={[commonStyles.goldCta, { marginBottom: 10 }]}
-            onPress={() => navigation.navigate('SessionSchedule', { campaignId })}
-          >
+          <TouchableOpacity style={[commonStyles.goldCta, { marginBottom: 10 }]} onPress={() => navigation.navigate('SessionSchedule', { campaignId })}>
             <Text style={commonStyles.goldCtaText}>📅 {t.sessions.scheduleTitle}</Text>
           </TouchableOpacity>
         )}
 
-        {/* Bouton créer un personnage (joueur dans la campagne) */}
+        {/* Bouton créer personnage (joueur) */}
         {!isGM && (
           <TouchableOpacity
             style={[commonStyles.primaryCta, { marginBottom: 10 }]}
-            onPress={() => mainNav.navigate('CharactersTab', {
-              screen: 'CharacterForm',
-              params: { campaignId },
-            })}
+            onPress={() => mainNav.navigate('CharactersTab', { screen: 'CharacterForm', params: { campaignId } })}
           >
             <Text style={commonStyles.primaryCtaText}>{t.campaigns.createCharacterForCampaign}</Text>
           </TouchableOpacity>
         )}
 
-        {/* Bouton log session */}
+        {/* Bouton log session (joueur) */}
         {!isGM && (
-          <TouchableOpacity
-            style={[commonStyles.ghostButton, { marginBottom: 16 }]}
-            onPress={() => navigation.navigate('SessionLogForm', { campaignId })}
-          >
+          <TouchableOpacity style={[commonStyles.ghostButton, { marginBottom: 16 }]} onPress={() => navigation.navigate('SessionLogForm', { campaignId })}>
             <Text style={commonStyles.ghostButtonText}>+ {t.sessionLog.logSession}</Text>
           </TouchableOpacity>
         )}
@@ -341,9 +463,7 @@ const CampaignDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           <View>
             {campaignPlayers.length === 0 ? (
               <View style={[commonStyles.card, { alignItems: 'center', paddingVertical: 24 }]}>
-                <Text style={[commonStyles.mutedText, { textAlign: 'center' }]}>
-                  {t.campaigns.noPlayers}{'\n'}{campaign.invite_code}
-                </Text>
+                <Text style={[commonStyles.mutedText, { textAlign: 'center' }]}>{t.campaigns.noPlayers}{'\n'}{campaign.invite_code}</Text>
               </View>
             ) : (
               campaignPlayers.map(cp => (
@@ -437,6 +557,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.ink },
   center: { flex: 1, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   scroll: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 },
+
   heroCard: {
     flexDirection: 'row', gap: 14,
     backgroundColor: colors.deep,
@@ -445,8 +566,7 @@ const styles = StyleSheet.create({
   },
   heroAvatar: {
     width: 56, height: 56, borderRadius: 14,
-    backgroundColor: 'rgba(122,90,30,0.25)',
-    borderWidth: 1, borderColor: 'rgba(201,152,58,0.3)',
+    backgroundColor: 'rgba(122,90,30,0.25)', borderWidth: 1, borderColor: 'rgba(201,152,58,0.3)',
     alignItems: 'center', justifyContent: 'center',
   },
   heroAvatarText: { fontFamily: typography.title, fontSize: 26, color: colors.gold2, fontWeight: '700' },
@@ -454,6 +574,7 @@ const styles = StyleSheet.create({
   heroDesc: { fontFamily: typography.body, fontSize: 13, color: colors.muted, lineHeight: 18, marginBottom: 8 },
   heroMeta: { flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' },
   inviteCode: { fontFamily: typography.title, fontSize: 11, color: colors.gold2, letterSpacing: 1 },
+
   tabBar: {
     flexDirection: 'row', backgroundColor: colors.deep,
     borderRadius: 10, borderWidth: 1, borderColor: colors.border,
@@ -466,11 +587,13 @@ const styles = StyleSheet.create({
   tabTextActive: { color: colors.gold2 },
   badge: { backgroundColor: colors.crimson2, borderRadius: 10, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 },
   badgeText: { fontFamily: typography.title, fontSize: 8, color: '#fff', fontWeight: '700' },
+
   playerRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   playerAvatar: { width: 38, height: 38, borderRadius: 10, backgroundColor: 'rgba(80,20,120,0.2)', alignItems: 'center', justifyContent: 'center' },
   playerAvatarText: { fontFamily: typography.title, fontSize: 16, color: '#b080e0', fontWeight: '700' },
   playerName: { fontFamily: typography.title, fontSize: 13, color: colors.parchment, fontWeight: '700' },
   playerChar: { fontFamily: typography.body, fontSize: 12, color: colors.muted, marginTop: 2 },
+
   logHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   logDate: { fontFamily: typography.title, fontSize: 11, color: colors.muted, letterSpacing: 0.5 },
   logChar: { fontFamily: typography.title, fontSize: 13, color: colors.parchment, fontWeight: '700', marginBottom: 6 },
@@ -482,13 +605,48 @@ const styles = StyleSheet.create({
   approveBtnText: { fontFamily: typography.title, fontSize: 10, color: '#70c090', textTransform: 'uppercase', letterSpacing: 0.8 },
   rejectBtn: { flex: 1, borderRadius: 6, paddingVertical: 8, alignItems: 'center', backgroundColor: 'rgba(139,26,42,0.15)', borderWidth: 1, borderColor: 'rgba(196,40,64,0.4)' },
   rejectBtnText: { fontFamily: typography.title, fontSize: 10, color: '#e07070', textTransform: 'uppercase', letterSpacing: 0.8 },
-  // Rulebook
+
+  // Rulebook MJ
+  sectionDivider: {
+    borderTopWidth: 1, borderTopColor: colors.border,
+    paddingTop: 14, marginTop: 6, marginBottom: 4,
+  },
+  sectionDividerText: {
+    fontFamily: typography.title, fontSize: 10, color: colors.gold,
+    textTransform: 'uppercase', letterSpacing: 1.2,
+  },
   methodRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   methodChip: { borderRadius: 6, borderWidth: 1, borderColor: colors.border2, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: 'rgba(255,255,255,0.02)' },
   methodChipActive: { borderColor: colors.gold2, backgroundColor: 'rgba(232,192,96,0.08)' },
   methodText: { fontFamily: typography.body, fontSize: 12, color: colors.muted },
   methodTextActive: { color: colors.gold2 },
   stageEditor: { backgroundColor: colors.deep, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 12, marginBottom: 10 },
+
+  // Vue joueur — intro
+  introCard: {
+    backgroundColor: 'rgba(201,152,58,0.06)',
+    borderRadius: 12, borderWidth: 1, borderColor: 'rgba(201,152,58,0.3)',
+    overflow: 'hidden', marginBottom: 14,
+  },
+  introCardBar: { height: 3, backgroundColor: colors.gold2 },
+  introCardTitle: {
+    fontFamily: typography.title, fontSize: 14, color: colors.gold2,
+    fontWeight: '700', paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6,
+  },
+  introCardText: {
+    fontFamily: typography.body, fontSize: 14, color: colors.parchment,
+    lineHeight: 22, paddingHorizontal: 16, paddingBottom: 16,
+  },
+
+  // Vue joueur — règles résumées
+  ruleRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border,
+    gap: 12,
+  },
+  ruleLabel: { fontFamily: typography.body, fontSize: 13, color: colors.muted, flex: 1 },
+  ruleValue: { fontFamily: typography.title, fontSize: 12, color: colors.parchment, flex: 2, textAlign: 'right' },
+
   stageRow: { flexDirection: 'row', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border },
   stageDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.gold2, marginTop: 6 },
   stageName: { fontFamily: typography.title, fontSize: 13, color: colors.parchment, fontWeight: '700' },
