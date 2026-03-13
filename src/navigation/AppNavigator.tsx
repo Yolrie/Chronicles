@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/authStore';
 import { useI18n } from '../i18n';
 import { colors } from '../styles/common';
+import { AlertProvider } from '../components/AlertProvider';
 
 import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
@@ -269,15 +270,17 @@ const AppNavigator: React.FC = () => {
   }
 
   return (
-    <NavigationContainer>
-      <RootStack.Navigator screenOptions={{ headerShown: false }}>
-        {session ? (
-          <RootStack.Screen name="App" component={RootNavigator} />
-        ) : (
-          <RootStack.Screen name="Auth" component={LoginScreen} />
-        )}
-      </RootStack.Navigator>
-    </NavigationContainer>
+    <AlertProvider>
+      <NavigationContainer>
+        <RootStack.Navigator screenOptions={{ headerShown: false }}>
+          {session ? (
+            <RootStack.Screen name="App" component={RootNavigator} />
+          ) : (
+            <RootStack.Screen name="Auth" component={LoginScreen} />
+          )}
+        </RootStack.Navigator>
+      </NavigationContainer>
+    </AlertProvider>
   );
 };
 
