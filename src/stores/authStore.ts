@@ -124,8 +124,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // Lit le fichier local comme blob
       const response = await fetch(localUri);
       const blob = await response.blob();
-      const ext = localUri.split('.').pop()?.toLowerCase() ?? 'jpg';
-      const path = `avatars/${user.id}.${ext}`;
+      const ext = localUri.split('.').pop()?.toLowerCase().split('?')[0] ?? 'jpg';
+      const path = `${user.id}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
