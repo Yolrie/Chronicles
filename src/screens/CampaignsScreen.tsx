@@ -24,6 +24,34 @@ import { useChroniclesAlert } from '../components/AlertProvider';
 
 type Props = NativeStackScreenProps<CampaignsStackParamList, 'CampaignsList'>;
 
+// ── Portrait Corner Marks ─────────────────────────────────────────────────────
+
+const PortraitCorners: React.FC = () => (
+  <>
+    <View style={[cStyles.hLine, cStyles.tlH]} />
+    <View style={[cStyles.vLine, cStyles.tlV]} />
+    <View style={[cStyles.hLine, cStyles.trH]} />
+    <View style={[cStyles.vLine, cStyles.trV]} />
+    <View style={[cStyles.hLine, cStyles.blH]} />
+    <View style={[cStyles.vLine, cStyles.blV]} />
+    <View style={[cStyles.hLine, cStyles.brH]} />
+    <View style={[cStyles.vLine, cStyles.brV]} />
+  </>
+);
+
+const cStyles = StyleSheet.create({
+  hLine: { position: 'absolute', width: 8, height: 1.5, backgroundColor: colors.gold2 },
+  vLine: { position: 'absolute', width: 1.5, height: 8, backgroundColor: colors.gold2 },
+  tlH: { top: 0, left: 0 },
+  tlV: { top: 0, left: 0 },
+  trH: { top: 0, right: 0 },
+  trV: { top: 0, right: 0 },
+  blH: { bottom: 0, left: 0 },
+  blV: { bottom: 0, left: 0 },
+  brH: { bottom: 0, right: 0 },
+  brV: { bottom: 0, right: 0 },
+});
+
 // ── Campaign Card ─────────────────────────────────────────────────────────────
 
 const CampaignCard: React.FC<{ campaign: Campaign; onPress: () => void }> = ({
@@ -35,9 +63,11 @@ const CampaignCard: React.FC<{ campaign: Campaign; onPress: () => void }> = ({
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.72}>
-      {/* Left — initial circle */}
-      <View style={styles.cardInitial}>
-        <Text style={styles.cardInitialText}>
+      {/* Left — 64px square portrait placeholder */}
+      <View style={styles.cardPortrait}>
+        <PortraitCorners />
+        <Text style={styles.cardPortraitIcon}>🏰</Text>
+        <Text style={styles.cardPortraitInitial}>
           {campaign.name[0]?.toUpperCase() ?? '?'}
         </Text>
       </View>
@@ -65,9 +95,11 @@ const CampaignCard: React.FC<{ campaign: Campaign; onPress: () => void }> = ({
           </Text>
         ) : null}
 
-        <Text style={styles.codeValue} numberOfLines={1}>
-          {campaign.invite_code}
-        </Text>
+        {/* Invite code as parchment chip */}
+        <View style={styles.codeChip}>
+          <Text style={styles.codeChipLabel}>CODE</Text>
+          <Text style={styles.codeChipValue}>{campaign.invite_code}</Text>
+        </View>
       </View>
 
       {/* Right arrow */}
@@ -157,6 +189,12 @@ const CampaignsScreen: React.FC<Props> = ({ navigation }) => {
         <Text style={commonStyles.primaryCtaText}>{t.campaigns.createCampaign}</Text>
       </TouchableOpacity>
 
+      {/* Parchment info banner between CTAs */}
+      <View style={styles.parchmentInfoBanner}>
+        <Text style={styles.parchmentInfoText}>◆ {t.campaigns.joinWithCode} ◆</Text>
+        <Text style={styles.parchmentInfoSub}>Rejoignez une aventure avec un code d'invitation</Text>
+      </View>
+
       {/* Gold CTA — join */}
       <TouchableOpacity
         style={commonStyles.goldCta}
@@ -203,13 +241,17 @@ const CampaignsScreen: React.FC<Props> = ({ navigation }) => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            {/* Gold top bar */}
+            {/* Thick gold top bar (4px) */}
             <View style={styles.modalTopBar} />
 
-            <View style={styles.modalInner}>
-              {/* Title */}
+            {/* Ornamental title row */}
+            <View style={styles.modalTitleRow}>
+              <View style={styles.modalTitleLine} />
               <Text style={styles.modalTitle}>{t.campaigns.joinWithCode}</Text>
+              <View style={styles.modalTitleLine} />
+            </View>
 
+            <View style={styles.modalInner}>
               {/* Code input */}
               <Text style={commonStyles.fieldLabel}>{t.campaigns.inviteCodeLabel}</Text>
               <TextInput
@@ -311,43 +353,72 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
+  // Parchment info banner between CTAs
+  parchmentInfoBanner: {
+    backgroundColor: colors.parchment,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#8B7350',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+  },
+  parchmentInfoText: {
+    fontFamily: typography.title,
+    fontSize: 10,
+    color: colors.parchmentInk,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 3,
+  },
+  parchmentInfoSub: {
+    fontSize: 12,
+    color: '#5C4030',
+    textAlign: 'center',
+  },
+
   // ── Campaign card ─────────────────────────────────────────────────────────
 
   card: {
-    backgroundColor: colors.deep,
+    backgroundColor: '#0E1420',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.border2,
     padding: 14,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
-    shadowColor: '#000',
+    shadowColor: colors.gold2,
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 5,
   },
 
-  // 56px circle with gold initial
-  cardInitial: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: 'rgba(122,90,30,0.2)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(201,168,76,0.35)',
+  // 64px square portrait placeholder with corner marks
+  cardPortrait: {
+    width: 64,
+    height: 64,
+    backgroundColor: colors.deep,
+    borderWidth: 1,
+    borderColor: colors.border2,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+    borderRadius: 4,
     flexShrink: 0,
   },
-  cardInitialText: {
-    fontFamily: typography.title,
+  cardPortraitIcon: {
     fontSize: 24,
+    lineHeight: 28,
+  },
+  cardPortraitInitial: {
+    fontFamily: typography.title,
+    fontSize: 11,
     color: colors.gold2,
     fontWeight: '700',
-    lineHeight: 28,
+    marginTop: 2,
   },
 
   cardBody: {
@@ -370,16 +441,36 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   campDesc: {
-    fontFamily: typography.body,
     fontSize: 13,
     color: colors.muted,
     lineHeight: 18,
     marginBottom: 6,
   },
-  codeValue: {
+
+  // Parchment chip for invite code
+  codeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(242,232,198,0.08)',
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(242,232,198,0.18)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignSelf: 'flex-start',
+  },
+  codeChipLabel: {
     fontFamily: typography.title,
-    fontSize: 9,
+    fontSize: 7,
     color: colors.gold,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+  },
+  codeChipValue: {
+    fontFamily: typography.title,
+    fontSize: 10,
+    color: colors.gold2,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
@@ -410,7 +501,6 @@ const styles = StyleSheet.create({
     color: colors.border2,
   },
   emptyText: {
-    fontFamily: typography.body,
     fontSize: 14,
     color: colors.muted,
     textAlign: 'center',
@@ -421,41 +511,56 @@ const styles = StyleSheet.create({
 
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.78)',
+    backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'center',
     paddingHorizontal: 20,
   },
 
   modalCard: {
-    backgroundColor: colors.deep,
+    backgroundColor: '#090C14',
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border2,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: colors.gold2,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.25,
     shadowRadius: 20,
     elevation: 16,
   },
 
-  // 3px gold accent bar at top
+  // 4px gold accent bar at top — thicker for modal
   modalTopBar: {
-    height: 3,
+    height: 4,
     backgroundColor: colors.gold2,
+  },
+
+  modalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 22,
+    paddingTop: 16,
+    paddingBottom: 4,
+    gap: 10,
+  },
+  modalTitleLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border2,
+    opacity: 0.5,
+  },
+  modalTitle: {
+    fontFamily: typography.title,
+    fontSize: 13,
+    color: colors.gold2,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
 
   modalInner: {
     padding: 22,
-  },
-
-  modalTitle: {
-    fontFamily: typography.title,
-    fontSize: 16,
-    color: colors.parchment,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    marginBottom: 18,
+    paddingTop: 14,
   },
 
   codeInput: {
@@ -467,7 +572,7 @@ const styles = StyleSheet.create({
     color: colors.parchment,
     fontFamily: typography.title,
     fontSize: 22,
-    backgroundColor: 'rgba(14,31,46,0.8)',
+    backgroundColor: 'rgba(14,20,32,0.9)',
     letterSpacing: 5,
     textAlign: 'center',
     marginBottom: 4,
@@ -493,7 +598,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(201,168,76,0.1)',
   },
   charChipText: {
-    fontFamily: typography.body,
     fontSize: 13,
     color: colors.muted,
   },
