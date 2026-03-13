@@ -1,6 +1,6 @@
 // src/screens/CharacterFormScreen.tsx
 
-import React, { useState, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useLayoutEffect } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
@@ -19,13 +18,21 @@ import { CharactersStackParamList } from '../navigation/AppNavigator';
 import { useCharactersStore } from '../stores/charactersStore';
 import { useCampaignsStore, CampaignRules } from '../stores/campaignsStore';
 import { useI18n } from '../i18n';
+import { useChroniclesAlert } from '../components/AlertProvider';
 import { colors, commonStyles, typography } from '../styles/common';
 import { CharacterData, CharacterStats } from '../types';
 
 type Props = NativeStackScreenProps<CharactersStackParamList, 'CharacterForm'>;
 
+// ── Valeurs par défaut ────────────────────────────────────────────────────────
+
 const DEFAULT_RACES = ['Humain', 'Elfe', 'Nain', 'Halfelin', 'Semi-Elfe', 'Tieflin', 'Dragonide', 'Gnome', 'Demi-Orc'];
 const DEFAULT_CLASSES = ['Barbare', 'Barde', 'Clerc', 'Druide', 'Guerrier', 'Moine', 'Paladin', 'Rôdeur', 'Roublard', 'Ensorceleur', 'Sorcier', 'Magicien'];
+const DEFAULT_BACKGROUNDS = ['Acolyte', 'Artisan', 'Charlatan', 'Criminel', 'Ermite', 'Étranger', 'Gladiateur', 'Marin', 'Noble', 'Paysan', 'Sage', 'Sauvageon', 'Soldat', 'Urfin'];
+const DEFAULT_HAIR_COLORS = ['Noir', 'Brun', 'Châtain', 'Blond', 'Roux', 'Gris', 'Blanc', 'Bleu', 'Vert', 'Violet', 'Autre'];
+const DEFAULT_EYE_COLORS = ['Marron', 'Noisette', 'Vert', 'Bleu', 'Gris', 'Violet', 'Or', 'Ambre', 'Autre'];
+const DEFAULT_SKIN_TONES = ['Claire', 'Ivoire', 'Olivâtre', 'Mate', 'Foncée', 'Très foncée', 'Argentée', 'Dorée', 'Autre'];
+const DEFAULT_PERSONALITY = ['Courageux', 'Prudent', 'Impulsif', 'Méfiant', 'Généreux', 'Sarcastique', 'Loyal', 'Chaotique', 'Ambitieux', 'Humble', 'Mystérieux', 'Jovial'];
 const ALIGNMENTS_FR = ['Loyal Bon', 'Neutre Bon', 'Chaotique Bon', 'Loyal Neutre', 'Neutre', 'Chaotique Neutre', 'Loyal Mauvais', 'Neutre Mauvais', 'Chaotique Mauvais'];
 
 const STAT_KEYS: (keyof CharacterStats)[] = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
@@ -61,7 +68,12 @@ function FieldInput({ label, value, onChangeText, placeholder, keyboardType, mul
   );
 }
 
-function Chips({ options, value, onSelect }: { options: string[]; value: string; onSelect: (v: string) => void }) {
+function Chips({ options, value, onSelect, multi }: {
+  options: string[];
+  value: string;
+  onSelect: (v: string) => void;
+  multi?: boolean;
+}) {
   return (
     <View style={styles.chipRow}>
       {options.map(opt => (
@@ -77,32 +89,21 @@ function Chips({ options, value, onSelect }: { options: string[]; value: string;
   );
 }
 
-/** Stepper pour les caractéristiques — affiche la valeur en Text (plus de TextInput coupé) */
 function StatBox({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
   const mod = modifier(value);
   const modColor = value > 10 ? '#70c090' : value < 10 ? '#e07070' : colors.parchment;
   return (
     <View style={styles.statBox}>
       <Text style={styles.statLabel}>{label}</Text>
-      {/* Bulbe du modificateur */}
       <View style={styles.statModBubble}>
         <Text style={[styles.statMod, { color: modColor }]}>{mod}</Text>
       </View>
-      {/* Stepper : − valeur + */}
       <View style={styles.stepperRow}>
-        <TouchableOpacity
-          style={styles.stepBtn}
-          onPress={() => onChange(Math.max(1, value - 1))}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}
-        >
+        <TouchableOpacity style={styles.stepBtn} onPress={() => onChange(Math.max(1, value - 1))} hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }}>
           <Text style={styles.stepBtnText}>−</Text>
         </TouchableOpacity>
         <Text style={styles.statValue}>{value}</Text>
-        <TouchableOpacity
-          style={styles.stepBtn}
-          onPress={() => onChange(Math.min(30, value + 1))}
-          hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}
-        >
+        <TouchableOpacity style={styles.stepBtn} onPress={() => onChange(Math.min(30, value + 1))} hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }}>
           <Text style={styles.stepBtnText}>+</Text>
         </TouchableOpacity>
       </View>
@@ -110,24 +111,30 @@ function StatBox({ label, value, onChange }: { label: string; value: number; onC
   );
 }
 
-type Tab = 'identity' | 'stats' | 'lore';
+type Tab = 'identity' | 'stats' | 'appearance' | 'lore';
 
 // ── Écran principal ───────────────────────────────────────────────────────────
 
 const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
   const { characterId, campaignId } = route.params ?? {};
   const { t } = useI18n();
+  const { showAlert } = useChroniclesAlert();
   const { characters, loading, createCharacter, updateCharacter, deleteCharacter } = useCharactersStore();
   const { campaigns } = useCampaignsStore();
 
   const existing = characters.find(c => c.id === characterId);
   const isEdit = !!existing;
 
-  // Règles de la campagne si on est en contexte de campagne
+  // Règles de la campagne
   const campaign = campaigns.find(c => c.id === campaignId);
   const rules = (campaign?.rules_json ?? {}) as CampaignRules;
   const raceOptions = rules.allowed_races?.length ? rules.allowed_races : DEFAULT_RACES;
   const classOptions = rules.allowed_classes?.length ? rules.allowed_classes : DEFAULT_CLASSES;
+  const backgroundOptions = rules.allowed_backgrounds?.length ? rules.allowed_backgrounds : DEFAULT_BACKGROUNDS;
+  const hairOptions = rules.allowed_hair_colors?.length ? rules.allowed_hair_colors : DEFAULT_HAIR_COLORS;
+  const eyeOptions = rules.allowed_eye_colors?.length ? rules.allowed_eye_colors : DEFAULT_EYE_COLORS;
+  const skinOptions = rules.allowed_skin_tones?.length ? rules.allowed_skin_tones : DEFAULT_SKIN_TONES;
+  const personalityOptions = rules.personality_presets?.length ? rules.personality_presets : DEFAULT_PERSONALITY;
 
   // ── État Identity ──
   const [name, setName] = useState(existing?.name ?? '');
@@ -152,15 +159,23 @@ const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
   const [ac, setAc] = useState(existing?.data_json?.ac?.toString() ?? '');
   const [speed, setSpeed] = useState(existing?.data_json?.speed?.toString() ?? '9');
   const [gold, setGold] = useState(existing?.data_json?.gold?.toString() ?? '0');
+  const [equipment, setEquipment] = useState(existing?.data_json?.equipment ?? '');
+
+  // ── État Apparence ──
+  const [height, setHeight] = useState(existing?.data_json?.height ?? '');
+  const [weight, setWeight] = useState(existing?.data_json?.weight ?? '');
+  const [eyes, setEyes] = useState(existing?.data_json?.eyes ?? '');
+  const [hair, setHair] = useState(existing?.data_json?.hair ?? '');
+  const [skin, setSkin] = useState(existing?.data_json?.skin ?? '');
 
   // ── État Lore ──
   const [backstory, setBackstory] = useState(existing?.data_json?.backstory ?? '');
+  const [personalityPreset, setPersonalityPreset] = useState('');
   const [traits, setTraits] = useState(existing?.data_json?.traits ?? '');
   const [ideals, setIdeals] = useState(existing?.data_json?.ideals ?? '');
   const [bonds, setBonds] = useState(existing?.data_json?.bonds ?? '');
   const [flaws, setFlaws] = useState(existing?.data_json?.flaws ?? '');
   const [notes, setNotes] = useState(existing?.data_json?.notes ?? '');
-  const [equipment, setEquipment] = useState(existing?.data_json?.equipment ?? '');
 
   const [activeTab, setActiveTab] = useState<Tab>('identity');
 
@@ -174,7 +189,10 @@ const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
   }, [isEdit, existing?.name, t]);
 
   async function handleSave() {
-    if (!name.trim()) { Alert.alert(t.common.nameRequired, t.characters.characterName); return; }
+    if (!name.trim()) {
+      showAlert({ icon: '⚠', title: t.common.nameRequired, message: t.characters.characterName, buttons: [{ text: 'OK' }] });
+      return;
+    }
 
     const data_json: CharacterData = {
       stats,
@@ -192,6 +210,11 @@ const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
       flaws: flaws || undefined,
       notes: notes || undefined,
       equipment: equipment || undefined,
+      height: height || undefined,
+      weight: weight || undefined,
+      eyes: eyes || undefined,
+      hair: hair || undefined,
+      skin: skin || undefined,
     };
 
     const payload = {
@@ -206,32 +229,56 @@ const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
 
     if (isEdit && existing) {
       await updateCharacter(existing.id, payload);
-      Alert.alert(t.characters.saved, t.characters.characterUpdated);
+      showAlert({ icon: '✓', title: t.characters.saved, message: t.characters.characterUpdated, buttons: [{ text: 'OK' }] });
     } else {
       const created = await createCharacter(payload);
       if (created) {
-        Alert.alert(t.characters.forgeHero, t.characters.heroForged(created.name));
-        navigation.goBack();
+        showAlert({
+          icon: '⚔',
+          title: t.characters.forgeHero,
+          message: t.characters.heroForged(created.name),
+          buttons: [{ text: 'OK', onPress: () => navigation.goBack() }],
+        });
       }
     }
   }
 
   function confirmDelete() {
     if (!existing) return;
-    Alert.alert(t.characters.deleteTitle, t.characters.deleteConfirm(existing.name), [
-      { text: t.common.cancel, style: 'cancel' },
-      { text: t.common.delete, style: 'destructive', onPress: async () => { await deleteCharacter(existing.id); navigation.goBack(); } },
-    ]);
+    showAlert({
+      icon: '🗑',
+      title: t.characters.deleteTitle,
+      message: t.characters.deleteConfirm(existing.name),
+      buttons: [
+        { text: t.common.cancel, style: 'cancel' },
+        { text: t.common.delete, style: 'destructive', onPress: async () => { await deleteCharacter(existing.id); navigation.goBack(); } },
+      ],
+    });
   }
 
-  // Contexte campagne affiché en haut
+  // Présentation de la campagne (intro texte)
+  const campaignIntro = rules.campaign_intro;
   const campaignBanner = campaign ? (
     <View style={styles.campaignBanner}>
-      <Text style={styles.campaignBannerText}>
-        {t.characters.campaignRules} · {campaign.name}
-      </Text>
+      {campaignIntro ? (
+        <View style={styles.introBox}>
+          <Text style={styles.introTitle}>📜 {campaign.name}</Text>
+          <Text style={styles.introText}>{campaignIntro}</Text>
+        </View>
+      ) : (
+        <Text style={styles.campaignBannerText}>
+          {t.characters.campaignRules} · {campaign.name}
+        </Text>
+      )}
     </View>
   ) : null;
+
+  const TABS: { key: Tab; label: string }[] = [
+    { key: 'identity', label: t.characters.identity },
+    { key: 'stats', label: t.characters.stats },
+    { key: 'appearance', label: t.characters.appearance },
+    { key: 'lore', label: t.characters.lore },
+  ];
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
@@ -240,14 +287,14 @@ const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {/* Tab bar */}
         <View style={styles.tabBar}>
-          {(['identity', 'stats', 'lore'] as Tab[]).map(tab => (
+          {TABS.map(tab => (
             <TouchableOpacity
-              key={tab}
-              style={[styles.tabItem, activeTab === tab && styles.tabItemActive]}
-              onPress={() => setActiveTab(tab)}
+              key={tab.key}
+              style={[styles.tabItem, activeTab === tab.key && styles.tabItemActive]}
+              onPress={() => setActiveTab(tab.key)}
             >
-              <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-                {t.characters[tab as 'identity' | 'stats' | 'lore']}
+              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+                {tab.label}
               </Text>
             </TouchableOpacity>
           ))}
@@ -261,12 +308,7 @@ const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
           {/* ── Identité ── */}
           {activeTab === 'identity' && (
             <View>
-              <FieldInput
-                label={t.characters.characterName}
-                value={name}
-                onChangeText={setName}
-                placeholder="Aria Nightwhisper..."
-              />
+              <FieldInput label={t.characters.characterName} value={name} onChangeText={setName} placeholder="Aria Nightwhisper..." />
 
               <View style={commonStyles.fieldWrap}>
                 <Text style={commonStyles.fieldLabel}>{t.characters.race}</Text>
@@ -274,8 +316,7 @@ const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
                 {!raceOptions.includes(race) && race ? (
                   <TextInput
                     style={[commonStyles.input, { marginTop: 6 }]}
-                    value={race}
-                    onChangeText={setRace}
+                    value={race} onChangeText={setRace}
                     placeholder={t.characters.customRace}
                     placeholderTextColor={colors.muted}
                   />
@@ -287,35 +328,27 @@ const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
                 <Chips options={classOptions} value={charClass} onSelect={setCharClass} />
               </View>
 
-              <FieldInput
-                label={t.characters.background}
-                value={background}
-                onChangeText={setBackground}
-                placeholder="Sage, Acolyte, Criminel..."
-              />
+              <View style={commonStyles.fieldWrap}>
+                <Text style={commonStyles.fieldLabel}>{t.characters.background}</Text>
+                <Chips options={backgroundOptions} value={background} onSelect={setBackground} />
+                {!backgroundOptions.includes(background) && background ? (
+                  <TextInput
+                    style={[commonStyles.input, { marginTop: 6 }]}
+                    value={background} onChangeText={setBackground}
+                    placeholder="Historique personnalisé..."
+                    placeholderTextColor={colors.muted}
+                  />
+                ) : null}
+              </View>
 
               <View style={styles.rowFields}>
                 <View style={[commonStyles.fieldWrap, { flex: 1 }]}>
                   <Text style={commonStyles.fieldLabel}>{t.characters.level}</Text>
-                  <TextInput
-                    style={commonStyles.input}
-                    value={level}
-                    onChangeText={setLevel}
-                    keyboardType="number-pad"
-                    maxLength={2}
-                    placeholderTextColor={colors.muted}
-                  />
+                  <TextInput style={commonStyles.input} value={level} onChangeText={setLevel} keyboardType="number-pad" maxLength={2} placeholderTextColor={colors.muted} />
                 </View>
                 <View style={[commonStyles.fieldWrap, { flex: 1 }]}>
                   <Text style={commonStyles.fieldLabel}>{t.characters.age}</Text>
-                  <TextInput
-                    style={commonStyles.input}
-                    value={age}
-                    onChangeText={setAge}
-                    keyboardType="number-pad"
-                    placeholder="—"
-                    placeholderTextColor={colors.muted}
-                  />
+                  <TextInput style={commonStyles.input} value={age} onChangeText={setAge} keyboardType="number-pad" placeholder="—" placeholderTextColor={colors.muted} />
                 </View>
               </View>
 
@@ -332,12 +365,7 @@ const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
               <Text style={[commonStyles.sectionTitle, { marginBottom: 12 }]}>{t.characters.abilityScores}</Text>
               <View style={styles.statsGrid}>
                 {STAT_KEYS.map(key => (
-                  <StatBox
-                    key={key}
-                    label={STAT_LABELS_FR[key]}
-                    value={stats[key]}
-                    onChange={v => setStats(prev => ({ ...prev, [key]: v }))}
-                  />
+                  <StatBox key={key} label={STAT_LABELS_FR[key]} value={stats[key]} onChange={v => setStats(prev => ({ ...prev, [key]: v }))} />
                 ))}
               </View>
 
@@ -378,11 +406,94 @@ const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           )}
 
+          {/* ── Apparence ── */}
+          {activeTab === 'appearance' && (
+            <View>
+              <View style={styles.rowFields}>
+                <View style={[commonStyles.fieldWrap, { flex: 1 }]}>
+                  <Text style={commonStyles.fieldLabel}>{t.characters.height}</Text>
+                  <TextInput style={commonStyles.input} value={height} onChangeText={setHeight} placeholder="1m75..." placeholderTextColor={colors.muted} />
+                </View>
+                <View style={[commonStyles.fieldWrap, { flex: 1 }]}>
+                  <Text style={commonStyles.fieldLabel}>{t.characters.weight}</Text>
+                  <TextInput style={commonStyles.input} value={weight} onChangeText={setWeight} placeholder="70 kg..." placeholderTextColor={colors.muted} />
+                </View>
+              </View>
+
+              <View style={commonStyles.fieldWrap}>
+                <Text style={commonStyles.fieldLabel}>{t.characters.hair}</Text>
+                <Chips options={hairOptions} value={hair} onSelect={setHair} />
+                {!hairOptions.includes(hair) && hair ? (
+                  <TextInput style={[commonStyles.input, { marginTop: 6 }]} value={hair} onChangeText={setHair} placeholder="Couleur personnalisée..." placeholderTextColor={colors.muted} />
+                ) : null}
+              </View>
+
+              <View style={commonStyles.fieldWrap}>
+                <Text style={commonStyles.fieldLabel}>{t.characters.eyes}</Text>
+                <Chips options={eyeOptions} value={eyes} onSelect={setEyes} />
+                {!eyeOptions.includes(eyes) && eyes ? (
+                  <TextInput style={[commonStyles.input, { marginTop: 6 }]} value={eyes} onChangeText={setEyes} placeholder="Couleur personnalisée..." placeholderTextColor={colors.muted} />
+                ) : null}
+              </View>
+
+              <View style={commonStyles.fieldWrap}>
+                <Text style={commonStyles.fieldLabel}>{t.characters.skin}</Text>
+                <Chips options={skinOptions} value={skin} onSelect={setSkin} />
+                {!skinOptions.includes(skin) && skin ? (
+                  <TextInput style={[commonStyles.input, { marginTop: 6 }]} value={skin} onChangeText={setSkin} placeholder="Teinte personnalisée..." placeholderTextColor={colors.muted} />
+                ) : null}
+              </View>
+
+              {/* Traits de personnalité prédéfinis */}
+              <View style={commonStyles.fieldWrap}>
+                <Text style={commonStyles.fieldLabel}>{t.characters.personalityPresets}</Text>
+                <Text style={[commonStyles.mutedText, { marginBottom: 8 }]}>Sélectionnez un trait ou rédigez librement ci-dessous</Text>
+                <View style={styles.chipRow}>
+                  {personalityOptions.map(opt => (
+                    <TouchableOpacity
+                      key={opt}
+                      style={[styles.chip, personalityPreset === opt && styles.chipActive]}
+                      onPress={() => {
+                        if (personalityPreset === opt) {
+                          setPersonalityPreset('');
+                        } else {
+                          setPersonalityPreset(opt);
+                        }
+                      }}
+                    >
+                      <Text style={[styles.chipText, personalityPreset === opt && styles.chipTextActive]}>{opt}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            </View>
+          )}
+
           {/* ── Histoire ── */}
           {activeTab === 'lore' && (
             <View>
               <FieldInput label={t.characters.backstory} value={backstory} onChangeText={setBackstory} placeholder="Né dans l'ombre de la grande guerre..." multiline />
-              <FieldInput label={t.characters.traits} value={traits} onChangeText={setTraits} placeholder="Sarcastique mais loyal..." multiline />
+
+              {/* Traits — avec préset sélectionné en suggestion */}
+              <View style={commonStyles.fieldWrap}>
+                <Text style={commonStyles.fieldLabel}>{t.characters.traits}</Text>
+                {personalityPreset ? (
+                  <TouchableOpacity
+                    style={styles.presetSuggestion}
+                    onPress={() => { setTraits(traits ? `${traits}, ${personalityPreset}` : personalityPreset); }}
+                  >
+                    <Text style={styles.presetSuggestionText}>💡 Ajouter "{personalityPreset}" depuis l'apparence</Text>
+                  </TouchableOpacity>
+                ) : null}
+                <TextInput
+                  style={[commonStyles.input, { minHeight: 80, textAlignVertical: 'top' }]}
+                  value={traits} onChangeText={setTraits}
+                  placeholder="Sarcastique mais loyal..."
+                  placeholderTextColor={colors.muted}
+                  multiline
+                />
+              </View>
+
               <FieldInput label={t.characters.ideals} value={ideals} onChangeText={setIdeals} placeholder="La justice avant tout..." multiline />
               <FieldInput label={t.characters.bonds} value={bonds} onChangeText={setBonds} placeholder="Je dois ma vie au vieux forgeron..." multiline />
               <FieldInput label={t.characters.flaws} value={flaws} onChangeText={setFlaws} placeholder="Ne peut résister aux trésors..." multiline />
@@ -415,11 +526,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.ink },
 
   campaignBanner: {
-    backgroundColor: 'rgba(201,152,58,0.08)',
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
   },
   campaignBannerText: {
     fontFamily: typography.title,
@@ -427,6 +535,27 @@ const styles = StyleSheet.create({
     color: colors.gold,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(201,152,58,0.08)',
+  },
+  introBox: {
+    backgroundColor: 'rgba(201,152,58,0.06)',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  introTitle: {
+    fontFamily: typography.title,
+    fontSize: 13,
+    color: colors.gold2,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  introText: {
+    fontFamily: typography.body,
+    fontSize: 13,
+    color: colors.muted,
+    lineHeight: 20,
   },
 
   tabBar: {
@@ -435,9 +564,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  tabItem: { flex: 1, paddingVertical: 13, alignItems: 'center' },
+  tabItem: { flex: 1, paddingVertical: 11, alignItems: 'center' },
   tabItemActive: { borderBottomWidth: 2, borderBottomColor: colors.gold2 },
-  tabText: { fontFamily: typography.title, fontSize: 11, color: colors.muted, textTransform: 'uppercase', letterSpacing: 1 },
+  tabText: { fontFamily: typography.title, fontSize: 9, color: colors.muted, textTransform: 'uppercase', letterSpacing: 0.8 },
   tabTextActive: { color: colors.gold2 },
 
   scroll: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 48 },
@@ -453,72 +582,42 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: typography.body, fontSize: 12, color: colors.muted },
   chipTextActive: { color: colors.gold2 },
 
-  // Grille de stats
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
   statBox: {
-    width: '30%',
-    flexGrow: 1,
-    backgroundColor: colors.deep,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 6,
+    width: '30%', flexGrow: 1,
+    backgroundColor: colors.deep, borderRadius: 10, borderWidth: 1, borderColor: colors.border,
+    alignItems: 'center', paddingVertical: 10, paddingHorizontal: 6,
   },
-  statLabel: {
-    fontFamily: typography.title,
-    fontSize: 10,
-    color: colors.gold,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: 6,
-  },
+  statLabel: { fontFamily: typography.title, fontSize: 10, color: colors.gold, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 },
   statModBubble: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(201,152,58,0.08)', borderWidth: 1, borderColor: colors.border2,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 8,
+  },
+  statMod: { fontFamily: typography.title, fontSize: 16, fontWeight: '700' },
+  stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  stepBtn: {
+    width: 28, height: 28, borderRadius: 8,
+    backgroundColor: 'rgba(201,152,58,0.12)', borderWidth: 1, borderColor: colors.border2,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  stepBtnText: { color: colors.gold2, fontSize: 18, fontWeight: '700', lineHeight: 22 },
+  statValue: { fontFamily: typography.title, fontSize: 17, fontWeight: '700', color: colors.parchment, minWidth: 28, textAlign: 'center' },
+
+  presetSuggestion: {
     backgroundColor: 'rgba(201,152,58,0.08)',
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: colors.border2,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: 'rgba(201,152,58,0.25)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     marginBottom: 8,
   },
-  statMod: {
-    fontFamily: typography.title,
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  // Stepper (remplace TextInput qui coupait le texte)
-  stepperRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  stepBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
-    backgroundColor: 'rgba(201,152,58,0.12)',
-    borderWidth: 1,
-    borderColor: colors.border2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepBtnText: {
-    color: colors.gold2,
-    fontSize: 18,
-    fontWeight: '700',
-    lineHeight: 22,
-  },
-  statValue: {
-    fontFamily: typography.title,
-    fontSize: 17,
-    fontWeight: '700',
-    color: colors.parchment,
-    minWidth: 28,
-    textAlign: 'center',
+  presetSuggestionText: {
+    fontFamily: typography.body,
+    fontSize: 12,
+    color: colors.gold,
+    fontStyle: 'italic',
   },
 
   actions: { marginTop: 24, gap: 8 },
