@@ -10,17 +10,18 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../stores/authStore';
+import { useI18n } from '../i18n';
 import { colors, commonStyles, typography } from '../styles/common';
 
 type Mode = 'signin' | 'signup';
 
 const LoginScreen: React.FC = () => {
   const { signIn, signUp, loading, error, clearError } = useAuthStore();
+  const { t } = useI18n();
 
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
@@ -28,34 +29,51 @@ const LoginScreen: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
   const [role, setRole] = useState<'player' | 'game_master'>('player');
+  const [inlineError, setInlineError] = useState<string | null>(null);
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const passwordValid = password.length >= 8;
 
+  function showError(msg: string) {
+    setInlineError(msg);
+  }
+
   async function handleSubmit() {
     clearError();
-    if (!emailValid) { Alert.alert('Invalid email', 'Please enter a valid email address.'); return; }
-    if (!passwordValid) { Alert.alert('Weak password', 'Password must be at least 8 characters.'); return; }
+    setInlineError(null);
+
+    if (!emailValid) { showError(t.auth.invalidEmail); return; }
+    if (!passwordValid) { showError(t.auth.weakPassword); return; }
 
     if (mode === 'signup') {
-      if (!username.trim()) { Alert.alert('Username required', 'Please choose a username.'); return; }
-      if (username.trim().length < 3) { Alert.alert('Username too short', 'Username must be at least 3 characters.'); return; }
-      if (password !== confirmPassword) { Alert.alert('Password mismatch', 'Passwords do not match.'); return; }
+      if (!username.trim()) { showError(t.auth.usernameRequired); return; }
+      if (username.trim().length < 3) { showError(t.auth.usernameTooShort); return; }
+      if (password !== confirmPassword) { showError(t.auth.passwordMismatch); return; }
       try {
         await signUp(email.trim(), password, username.trim(), role);
-        Alert.alert('Account created', 'Welcome to Chronicles! Sign in to begin your adventure.');
+        setInlineError(null);
         setMode('signin');
+        setPassword('');
+        setConfirmPassword('');
       } catch {
-        // error is set in store
+        // error set in store
       }
     } else {
       try {
         await signIn(email.trim(), password);
       } catch {
-        // error is set in store
+        // error set in store
       }
     }
   }
+
+  function switchMode(next: Mode) {
+    clearError();
+    setInlineError(null);
+    setMode(next);
+  }
+
+  const displayError = inlineError ?? error ?? null;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -68,52 +86,114 @@ const LoginScreen: React.FC = () => {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Header */}
+
+          {/* ── Header / Logo ───────────────────────────────────────────── */}
           <View style={styles.headerBlock}>
+
+            {/* Top decorative rune row */}
+            <View style={styles.runeRow}>
+              <Text style={styles.runeDecor}>ᚱ</Text>
+              <View style={styles.runeLine} />
+              <Text style={styles.runeDecor}>◆</Text>
+              <View style={styles.runeLine} />
+              <Text style={styles.runeDecor}>ᚹ</Text>
+            </View>
+
+            {/* App name */}
             <Text style={styles.logoTitle}>CHRONICLES</Text>
+
+            {/* Gold divider with diamond */}
+            <View style={styles.runeRowBottom}>
+              <View style={styles.runeLine} />
+              <Text style={styles.runeAccent}>◆</Text>
+              <View style={styles.runeLine} />
+            </View>
+
+            {/* Subtitle */}
             <Text style={styles.logoSub}>Tabletop RPG Companion</Text>
-            <View style={styles.divider} />
+
+            {/* Subtle rune row below subtitle */}
+            <View style={styles.runeRowSmall}>
+              <Text style={styles.runeSmall}>᛭</Text>
+              <Text style={styles.runeSmall}>{'  '}ᚠ{'  '}</Text>
+              <Text style={styles.runeSmall}>᛭</Text>
+            </View>
           </View>
 
-          {/* Card */}
-          <View style={commonStyles.card}>
-            <Text style={styles.cardTitle}>
-              {mode === 'signin' ? 'Sign In' : 'Create Account'}
-            </Text>
+          {/* ── Card ────────────────────────────────────────────────────── */}
+          <View style={styles.card}>
+            {/* Gold accent bar at top of card */}
+            <View style={styles.cardTopBar} />
 
-            {error ? (
+            {/* Mode toggle tabs */}
+            <View style={styles.toggleTabs}>
+              <TouchableOpacity
+                style={[styles.toggleTab, mode === 'signin' && styles.toggleTabActive]}
+                onPress={() => switchMode('signin')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.toggleTabText, mode === 'signin' && styles.toggleTabTextActive]}>
+                  {t.auth.signIn}
+                </Text>
+                {mode === 'signin' && <View style={styles.toggleTabUnderline} />}
+              </TouchableOpacity>
+
+              <View style={styles.toggleTabDivider} />
+
+              <TouchableOpacity
+                style={[styles.toggleTab, mode === 'signup' && styles.toggleTabActive]}
+                onPress={() => switchMode('signup')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.toggleTabText, mode === 'signup' && styles.toggleTabTextActive]}>
+                  {t.auth.signUp}
+                </Text>
+                {mode === 'signup' && <View style={styles.toggleTabUnderline} />}
+              </TouchableOpacity>
+            </View>
+
+            {/* ── Inline error ── */}
+            {displayError ? (
               <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
+                <Text style={styles.errorIcon}>◆</Text>
+                <Text style={styles.errorText}>{displayError}</Text>
               </View>
             ) : null}
 
+            {/* ── Signup-only fields ── */}
             {mode === 'signup' && (
               <>
+                {/* Username */}
                 <View style={commonStyles.fieldWrap}>
-                  <Text style={commonStyles.fieldLabel}>Username</Text>
+                  <Text style={commonStyles.fieldLabel}>{t.auth.username}</Text>
                   <TextInput
                     style={commonStyles.input}
                     value={username}
                     onChangeText={setUsername}
                     placeholder="HeroOfLight"
-                    placeholderTextColor={colors.muted}
+                    placeholderTextColor={colors.subtle}
                     autoCapitalize="none"
                     autoCorrect={false}
                     maxLength={24}
                   />
                 </View>
 
+                {/* Role chips */}
                 <View style={commonStyles.fieldWrap}>
-                  <Text style={commonStyles.fieldLabel}>I am a...</Text>
+                  <Text style={commonStyles.fieldLabel}>{t.auth.iAmA}</Text>
                   <View style={styles.roleRow}>
                     {(['player', 'game_master'] as const).map(r => (
                       <TouchableOpacity
                         key={r}
                         style={[styles.roleChip, role === r && styles.roleChipActive]}
                         onPress={() => setRole(r)}
+                        activeOpacity={0.75}
                       >
+                        <Text style={styles.roleChipEmoji}>
+                          {r === 'player' ? '⚔' : '📜'}
+                        </Text>
                         <Text style={[styles.roleChipText, role === r && styles.roleChipTextActive]}>
-                          {r === 'player' ? 'Player' : 'Game Master'}
+                          {r === 'player' ? t.auth.player : t.auth.gameMaster}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -122,14 +202,15 @@ const LoginScreen: React.FC = () => {
               </>
             )}
 
+            {/* Email */}
             <View style={commonStyles.fieldWrap}>
-              <Text style={commonStyles.fieldLabel}>Email</Text>
+              <Text style={commonStyles.fieldLabel}>{t.auth.email}</Text>
               <TextInput
                 style={commonStyles.input}
                 value={email}
                 onChangeText={setEmail}
                 placeholder="you@example.com"
-                placeholderTextColor={colors.muted}
+                placeholderTextColor={colors.subtle}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 textContentType="emailAddress"
@@ -137,60 +218,72 @@ const LoginScreen: React.FC = () => {
               />
             </View>
 
+            {/* Password */}
             <View style={commonStyles.fieldWrap}>
-              <Text style={commonStyles.fieldLabel}>Password</Text>
+              <Text style={commonStyles.fieldLabel}>{t.auth.password}</Text>
               <TextInput
                 style={commonStyles.input}
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
-                placeholderTextColor={colors.muted}
+                placeholderTextColor={colors.subtle}
                 secureTextEntry
                 textContentType={mode === 'signup' ? 'newPassword' : 'password'}
               />
             </View>
 
+            {/* Confirm password — signup only */}
             {mode === 'signup' && (
               <View style={commonStyles.fieldWrap}>
-                <Text style={commonStyles.fieldLabel}>Confirm Password</Text>
+                <Text style={commonStyles.fieldLabel}>{t.auth.confirmPassword}</Text>
                 <TextInput
                   style={commonStyles.input}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   placeholder="••••••••"
-                  placeholderTextColor={colors.muted}
+                  placeholderTextColor={colors.subtle}
                   secureTextEntry
                   textContentType="newPassword"
                 />
               </View>
             )}
 
+            {/* Submit button */}
             <TouchableOpacity
-              style={[commonStyles.primaryCta, { marginTop: 8 }]}
+              style={[
+                mode === 'signin' ? commonStyles.primaryCta : commonStyles.goldCta,
+                styles.submitBtn,
+              ]}
               onPress={handleSubmit}
               disabled={loading}
+              activeOpacity={0.82}
             >
               {loading ? (
-                <ActivityIndicator color="#fce8e8" />
+                <ActivityIndicator color={mode === 'signin' ? '#F2E8C6' : colors.deeper} />
               ) : (
-                <Text style={commonStyles.primaryCtaText}>
-                  {mode === 'signin' ? 'Enter the Chronicles' : 'Forge My Legend'}
+                <Text style={mode === 'signin' ? commonStyles.primaryCtaText : commonStyles.goldCtaText}>
+                  {mode === 'signin' ? t.auth.enterChronicles : t.auth.forgeLegend}
                 </Text>
               )}
             </TouchableOpacity>
           </View>
 
-          {/* Toggle */}
+          {/* ── Toggle link ─────────────────────────────────────────────── */}
           <TouchableOpacity
             style={styles.toggleWrap}
-            onPress={() => { clearError(); setMode(mode === 'signin' ? 'signup' : 'signin'); }}
+            onPress={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
+            activeOpacity={0.7}
           >
             <Text style={styles.toggleText}>
-              {mode === 'signin'
-                ? "No account yet? Create one"
-                : 'Already have an account? Sign in'}
+              {mode === 'signin' ? t.auth.noAccount : t.auth.alreadyAccount}
             </Text>
           </TouchableOpacity>
+
+          {/* ── Decorative footer rune ──────────────────────────────────── */}
+          <View style={styles.footerRune}>
+            <Text style={styles.footerRuneText}>᛭</Text>
+          </View>
+
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -199,62 +292,246 @@ const LoginScreen: React.FC = () => {
 
 export default LoginScreen;
 
+// ─────────────────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.ink },
-  scroll: { flexGrow: 1, paddingHorizontal: 20, paddingTop: 48, paddingBottom: 32 },
-  headerBlock: { alignItems: 'center', marginBottom: 32 },
-  logoTitle: {
-    fontFamily: typography.display,
-    fontSize: 28,
-    color: colors.gold2,
-    letterSpacing: 6,
-    fontWeight: '700',
+  safe: {
+    flex: 1,
+    backgroundColor: colors.ink,
   },
-  logoSub: {
-    fontFamily: typography.body,
-    fontSize: 13,
-    color: colors.muted,
-    letterSpacing: 2,
-    marginTop: 6,
-    textTransform: 'uppercase',
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 44,
+    paddingBottom: 36,
   },
-  divider: { width: 60, height: 1, backgroundColor: colors.gold3, marginTop: 16 },
-  cardTitle: {
+
+  // ── Header ──────────────────────────────────────────────────────────────────
+  headerBlock: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+
+  // Top rune row with lines flanking the rune symbols
+  runeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '80%',
+    marginBottom: 10,
+    opacity: 0.35,
+  },
+  runeRowBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '55%',
+    marginTop: 8,
+    marginBottom: 12,
+    opacity: 0.4,
+  },
+  runeRowSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    opacity: 0.22,
+  },
+  runeLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.gold,
+    opacity: 0.7,
+  },
+  runeDecor: {
     fontFamily: typography.title,
     fontSize: 16,
-    color: colors.parchment,
+    color: colors.gold2,
+    marginHorizontal: 8,
+  },
+  runeAccent: {
+    fontFamily: typography.title,
+    fontSize: 12,
+    color: colors.gold3,
+    marginHorizontal: 8,
+  },
+  runeSmall: {
+    fontFamily: typography.title,
+    fontSize: 14,
+    color: colors.gold2,
+    letterSpacing: 2,
+  },
+
+  // "CHRONICLES" display title
+  logoTitle: {
+    fontFamily: typography.display,
+    fontSize: 32,
+    color: colors.gold2,
+    letterSpacing: 5,
     fontWeight: '700',
-    marginBottom: 16,
-    letterSpacing: 0.8,
+    textShadowColor: 'rgba(201,168,76,0.30)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 14,
   },
-  errorBox: {
-    backgroundColor: 'rgba(196,40,64,0.1)',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(196,40,64,0.3)',
-    padding: 10,
-    marginBottom: 12,
+  // "Tabletop RPG Companion"
+  logoSub: {
+    fontFamily: typography.body,
+    fontSize: 12,
+    color: colors.muted,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
   },
-  errorText: { fontFamily: typography.body, fontSize: 13, color: '#e07070' },
-  roleRow: { flexDirection: 'row', gap: 8 },
-  roleChip: {
-    flex: 1,
-    borderRadius: 6,
+
+  // ── Card ────────────────────────────────────────────────────────────────────
+  card: {
+    backgroundColor: colors.deep,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border2,
-    paddingVertical: 10,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.02)',
+    overflow: 'hidden',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  roleChipActive: { borderColor: colors.gold2, backgroundColor: 'rgba(232,192,96,0.08)' },
-  roleChipText: {
+  // 3px gold bar pinned to card top
+  cardTopBar: {
+    height: 3,
+    backgroundColor: colors.gold2,
+    marginHorizontal: -20,
+    marginBottom: 18,
+    opacity: 0.85,
+  },
+
+  // ── Mode toggle tabs ──────────────────────────────────────────────────────
+  toggleTabs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  toggleTab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingBottom: 10,
+    position: 'relative',
+  },
+  toggleTabActive: {},
+  toggleTabText: {
     fontFamily: typography.title,
     fontSize: 11,
     color: colors.muted,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 1.2,
   },
-  roleChipTextActive: { color: colors.gold2 },
-  toggleWrap: { alignItems: 'center', marginTop: 20, padding: 8 },
-  toggleText: { fontFamily: typography.body, fontSize: 14, color: colors.steel },
+  toggleTabTextActive: {
+    color: colors.gold2,
+  },
+  toggleTabUnderline: {
+    position: 'absolute',
+    bottom: 0,
+    left: '15%',
+    right: '15%',
+    height: 2,
+    backgroundColor: colors.gold2,
+    borderRadius: 2,
+  },
+  toggleTabDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: colors.border,
+    marginHorizontal: 4,
+  },
+
+  // ── Error box ────────────────────────────────────────────────────────────
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: 'rgba(192,57,43,0.10)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(192,57,43,0.32)',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  errorIcon: {
+    fontSize: 10,
+    color: '#E07070',
+    marginTop: 3,
+  },
+  errorText: {
+    flex: 1,
+    fontFamily: typography.body,
+    fontSize: 13,
+    color: '#E07070',
+    lineHeight: 19,
+  },
+
+  // ── Role chips ───────────────────────────────────────────────────────────
+  roleRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  roleChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border2,
+    paddingVertical: 11,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+  roleChipActive: {
+    borderColor: colors.gold2,
+    backgroundColor: 'rgba(201,168,76,0.09)',
+  },
+  roleChipEmoji: {
+    fontSize: 14,
+  },
+  roleChipText: {
+    fontFamily: typography.title,
+    fontSize: 10,
+    color: colors.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+  },
+  roleChipTextActive: {
+    color: colors.gold2,
+  },
+
+  // ── Submit button ────────────────────────────────────────────────────────
+  submitBtn: {
+    marginTop: 8,
+  },
+
+  // ── Toggle link ──────────────────────────────────────────────────────────
+  toggleWrap: {
+    alignItems: 'center',
+    marginTop: 18,
+    padding: 8,
+  },
+  toggleText: {
+    fontFamily: typography.body,
+    fontSize: 14,
+    color: colors.muted,
+    textDecorationLine: 'underline',
+    textDecorationColor: 'rgba(122,155,181,0.4)',
+  },
+
+  // ── Footer rune ──────────────────────────────────────────────────────────
+  footerRune: {
+    alignItems: 'center',
+    marginTop: 28,
+    opacity: 0.15,
+  },
+  footerRuneText: {
+    fontFamily: typography.title,
+    fontSize: 20,
+    color: colors.gold2,
+    letterSpacing: 4,
+  },
 });
