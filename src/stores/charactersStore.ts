@@ -11,7 +11,8 @@ type CharacterInput = {
   background?: string;
   level?: number;
   game_system_id?: string;
-  campaign_id?: string;
+  campaign_id?: string | null;
+  avatar_url?: string;
   data_json?: CharacterData;
 };
 
@@ -26,6 +27,7 @@ interface CharactersState {
   updateCharacter: (id: string, updates: Partial<CharacterInput>) => Promise<void>;
   deleteCharacter: (id: string) => Promise<void>;
   getCharacter: (id: string) => Character | undefined;
+  uploadCharacterAvatar: (characterId: string, localUri: string) => Promise<string | null>;
   clearError: () => void;
 }
 
@@ -94,5 +96,32 @@ export const useCharactersStore = create<CharactersState>((set, get) => ({
   },
 
   getCharacter: (id) => get().characters.find(c => c.id === id),
+
+  uploadCharacterAvatar: async (characterId, localUri) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    try {
+      const response = await fetch(localUri);
+      const arrayBuffer = await response.arrayBuffer();
+      const ext = localUri.split('.').pop()?.toLowerCase().split('?')[0] ?? 'jpg';
+      const mimeType = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
+      const path = `characters/${user.id}/${characterId}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, arrayBuffer, { upsert: true, contentType: mimeType });
+
+      if (uploadError) { set({ error: uploadError.message }); return null; }
+
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+      const urlWithBust = `${publicUrl}?t=${Date.now()}`;
+      await get().updateCharacter(characterId, { avatar_url: urlWithBust });
+      return urlWithBust;
+    } catch (err: unknown) {
+      set({ error: err instanceof Error ? err.message : 'Erreur upload' });
+      return null;
+    }
+  },
+
   clearError: () => set({ error: null }),
 }));

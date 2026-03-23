@@ -79,8 +79,9 @@ const ProfileScreen: React.FC = () => {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
+      mediaTypes: ['images'] as any,
+      allowsEditing: true,
+      aspect: [1, 1],
       quality: 0.75,
     });
     if (!result.canceled && result.assets[0]) {

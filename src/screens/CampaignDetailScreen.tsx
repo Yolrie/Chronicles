@@ -16,14 +16,13 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { CampaignsStackParamList } from '../navigation/AppNavigator';
 import { useCampaignsStore, CampaignRules } from '../stores/campaignsStore';
-import { useAuthStore } from '../stores/authStore';
 import { useI18n } from '../i18n';
 import { useChroniclesAlert } from '../components/AlertProvider';
 import { colors, commonStyles, typography } from '../styles/common';
 import { SessionLog } from '../types';
 
 type Props = NativeStackScreenProps<CampaignsStackParamList, 'CampaignDetail'>;
-type Tab = 'players' | 'logs' | 'rulebook';
+type Tab = 'players' | 'logs' | 'stages' | 'rulebook';
 
 function StatusBadge({ status }: { status: SessionLog['status'] }) {
   const style = status === 'approved' ? commonStyles.badgeGreen
@@ -328,11 +327,106 @@ function RulebookTab({ campaignId, isGM }: { campaignId: string; isGM: boolean }
   );
 }
 
+// ── Onglet Étapes ─────────────────────────────────────────────────────────────
+
+function StagesTab({ campaignId, isGM }: { campaignId: string; isGM: boolean }) {
+  const { campaigns, updateCampaignRules } = useCampaignsStore();
+  const { showAlert } = useChroniclesAlert();
+  const campaign = campaigns.find(c => c.id === campaignId);
+  const current = (campaign?.rules_json ?? {}) as CampaignRules;
+  const [stages, setStages] = useState<{ name: string; description: string }[]>(current.stages ?? []);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setStages(((campaign?.rules_json ?? {}) as CampaignRules).stages ?? []);
+  }, [campaign?.rules_json]);
+
+  async function handleSave() {
+    setSaving(true);
+    const rules: CampaignRules = { ...(current as CampaignRules), stages: stages.filter(s => s.name.trim()) };
+    const ok = await updateCampaignRules(campaignId, rules);
+    setSaving(false);
+    if (ok) showAlert({ icon: '✓', title: 'Étapes sauvegardées', message: '', buttons: [{ text: 'OK' }] });
+  }
+
+  if (!isGM) {
+    // Vue joueur : progression en lecture seule
+    if (!stages.length) {
+      return (
+        <View style={[commonStyles.card, { alignItems: 'center', paddingVertical: 32, marginTop: 4 }]}>
+          <Text style={{ fontSize: 28, marginBottom: 12 }}>🗺</Text>
+          <Text style={[commonStyles.mutedText, { textAlign: 'center' }]}>Le MJ n'a pas encore défini d'étapes.</Text>
+        </View>
+      );
+    }
+    return (
+      <View>
+        {stages.map((s, i) => (
+          <View key={i} style={styles.stageCard}>
+            <View style={styles.stageIndexBadge}>
+              <Text style={styles.stageIndexText}>{i + 1}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.stageName}>{s.name}</Text>
+              {s.description ? <Text style={styles.stageDesc}>{s.description}</Text> : null}
+            </View>
+          </View>
+        ))}
+      </View>
+    );
+  }
+
+  // Vue MJ : édition des étapes
+  return (
+    <View>
+      <Text style={[commonStyles.sectionTitle, { marginBottom: 4 }]}>◆ Étapes de la campagne ◆</Text>
+      <Text style={[commonStyles.mutedText, { marginBottom: 16 }]}>Définissez les grandes étapes narratives de votre campagne.</Text>
+      {stages.map((s, i) => (
+        <View key={i} style={styles.stageEditor}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6, gap: 8 }}>
+            <View style={styles.stageIndexBadge}>
+              <Text style={styles.stageIndexText}>{i + 1}</Text>
+            </View>
+            <TextInput
+              style={[commonStyles.input, { flex: 1 }]}
+              value={s.name}
+              onChangeText={v => setStages(prev => prev.map((st, idx) => idx === i ? { ...st, name: v } : st))}
+              placeholder="Nom de l'étape"
+              placeholderTextColor={colors.muted}
+            />
+          </View>
+          <TextInput
+            style={[commonStyles.input, { minHeight: 60, textAlignVertical: 'top', marginBottom: 6 }]}
+            value={s.description}
+            onChangeText={v => setStages(prev => prev.map((st, idx) => idx === i ? { ...st, description: v } : st))}
+            placeholder="Description de cette étape..."
+            placeholderTextColor={colors.muted}
+            multiline
+          />
+          <TouchableOpacity onPress={() => setStages(prev => prev.filter((_, idx) => idx !== i))}>
+            <Text style={[commonStyles.dangerButtonText, { textAlign: 'right' }]}>✕ Supprimer</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+      <TouchableOpacity
+        style={[commonStyles.ghostButton, { marginBottom: 14 }]}
+        onPress={() => setStages(prev => [...prev, { name: '', description: '' }])}
+      >
+        <Text style={commonStyles.ghostButtonText}>+ Ajouter une étape</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={[commonStyles.goldCta, saving && { opacity: 0.6 }]} onPress={handleSave} disabled={saving}>
+        {saving ? <ActivityIndicator color="#1a0e00" /> : (
+          <Text style={commonStyles.goldCtaText}>Enregistrer les étapes</Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 // ── Écran principal ───────────────────────────────────────────────────────────
 
 const CampaignDetailScreen: React.FC<Props> = ({ route, navigation }) => {
   const { campaignId } = route.params;
-  const { user } = useAuthStore();
   const { t } = useI18n();
   const { showAlert } = useChroniclesAlert();
   const {
@@ -433,18 +527,33 @@ const CampaignDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
         )}
 
-        {/* Bouton log session (joueur) */}
-        {!isGM && (
-          <TouchableOpacity style={[commonStyles.ghostButton, { marginBottom: 16 }]} onPress={() => navigation.navigate('SessionLogForm', { campaignId })}>
-            <Text style={commonStyles.ghostButtonText}>+ {t.sessionLog.logSession}</Text>
-          </TouchableOpacity>
-        )}
+        {/* Boutons journaux */}
+        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+          {isGM && (
+            <TouchableOpacity
+              style={[commonStyles.goldCta, { flex: 1 }]}
+              onPress={() => navigation.navigate('SessionLogForm', { campaignId, isGMJournal: true })}
+            >
+              <Text style={commonStyles.goldCtaText}>📖 Journal MJ</Text>
+            </TouchableOpacity>
+          )}
+          {!isGM && (
+            <TouchableOpacity
+              style={[commonStyles.ghostButton, { flex: 1 }]}
+              onPress={() => navigation.navigate('SessionLogForm', { campaignId })}
+            >
+              <Text style={commonStyles.ghostButtonText}>+ {t.sessionLog.logSession}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Tabs */}
         <View style={styles.tabBar}>
-          {(['players', 'logs', 'rulebook'] as Tab[]).map(tb => {
+          {(['players', 'logs', 'stages', 'rulebook'] as Tab[]).map(tb => {
+            const stagesCount = ((campaign.rules_json as any)?.stages ?? []).length;
             const label = tb === 'players' ? t.campaigns.players(campaignPlayers.length)
               : tb === 'logs' ? t.campaigns.sessionLogs(sessionLogs.length)
+              : tb === 'stages' ? `Étapes${stagesCount > 0 ? ` (${stagesCount})` : ''}`
               : t.campaigns.rulebook;
             const hasBadge = tb === 'logs' && isGM && pendingLogs > 0;
             return (
@@ -495,40 +604,63 @@ const CampaignDetailScreen: React.FC<Props> = ({ route, navigation }) => {
           <View>
             {sessionLogs.length === 0 ? (
               <View style={[commonStyles.card, { alignItems: 'center', paddingVertical: 24 }]}>
+                <Text style={{ fontSize: 28, marginBottom: 10 }}>📖</Text>
                 <Text style={[commonStyles.mutedText, { textAlign: 'center' }]}>{t.campaigns.noLogs}</Text>
               </View>
             ) : (
-              sessionLogs.map(log => (
-                <View key={log.id} style={commonStyles.card}>
-                  <View style={styles.logHeader}>
-                    <Text style={styles.logDate}>{log.session_date}</Text>
-                    <StatusBadge status={log.status} />
-                  </View>
-                  <Text style={styles.logChar}>{log.character?.name ?? 'Personnage inconnu'}</Text>
-                  <View style={styles.logStats}>
-                    {log.xp_gained > 0 && <Text style={styles.logStat}>+{log.xp_gained} XP</Text>}
-                    {log.gold_changed !== 0 && (
-                      <Text style={[styles.logStat, { color: log.gold_changed > 0 ? '#70c090' : '#e07070' }]}>
-                        {log.gold_changed > 0 ? '+' : ''}{log.gold_changed} PO
-                      </Text>
-                    )}
-                    {log.hp_current !== undefined && <Text style={styles.logStat}>PV: {log.hp_current}</Text>}
-                  </View>
-                  {log.notes ? <Text style={styles.logNotes} numberOfLines={2}>{log.notes}</Text> : null}
-                  {isGM && log.status === 'pending' && (
-                    <View style={styles.logActions}>
-                      <TouchableOpacity style={styles.approveBtn} onPress={() => approveSessionLog(log.id)}>
-                        <Text style={styles.approveBtnText}>{t.campaigns.approve}</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.rejectBtn} onPress={() => rejectSessionLog(log.id)}>
-                        <Text style={styles.rejectBtnText}>{t.campaigns.reject}</Text>
-                      </TouchableOpacity>
+              sessionLogs.map(log => {
+                const isGMLog = !!(log as any).is_gm_journal;
+                return (
+                  <View key={log.id} style={[commonStyles.card, isGMLog && styles.gmJournalCard]}>
+                    <View style={styles.logHeader}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={styles.logDate}>{log.session_date}</Text>
+                        {isGMLog && (
+                          <Text style={[commonStyles.badge, commonStyles.badgeGold]}>Journal MJ</Text>
+                        )}
+                      </View>
+                      {!isGMLog && <StatusBadge status={log.status} />}
                     </View>
-                  )}
-                </View>
-              ))
+                    {isGMLog
+                      ? <Text style={styles.gmJournalTitle}>{(log as any).title ?? 'Journal'}</Text>
+                      : <Text style={styles.logChar}>{log.character?.name ?? 'Personnage inconnu'}</Text>
+                    }
+                    {!isGMLog && (
+                      <View style={styles.logStats}>
+                        {log.xp_gained > 0 && <Text style={styles.logStat}>+{log.xp_gained} XP</Text>}
+                        {log.gold_changed !== 0 && (
+                          <Text style={[styles.logStat, { color: log.gold_changed > 0 ? '#70c090' : '#e07070' }]}>
+                            {log.gold_changed > 0 ? '+' : ''}{log.gold_changed} PO
+                          </Text>
+                        )}
+                        {log.hp_current !== undefined && <Text style={styles.logStat}>PV: {log.hp_current}</Text>}
+                      </View>
+                    )}
+                    {log.notes ? (
+                      <Text style={[styles.logNotes, isGMLog && { numberOfLines: undefined } as any]} numberOfLines={isGMLog ? 4 : 2}>
+                        {log.notes}
+                      </Text>
+                    ) : null}
+                    {isGM && !isGMLog && log.status === 'pending' && (
+                      <View style={styles.logActions}>
+                        <TouchableOpacity style={styles.approveBtn} onPress={() => approveSessionLog(log.id)}>
+                          <Text style={styles.approveBtnText}>{t.campaigns.approve}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.rejectBtn} onPress={() => rejectSessionLog(log.id)}>
+                          <Text style={styles.rejectBtnText}>{t.campaigns.reject}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                );
+              })
             )}
           </View>
+        )}
+
+        {/* ── Étapes ── */}
+        {tab === 'stages' && (
+          <StagesTab campaignId={campaignId} isGM={isGM} />
         )}
 
         {/* ── Règles MJ ── */}
@@ -651,4 +783,30 @@ const styles = StyleSheet.create({
   stageDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.gold2, marginTop: 6 },
   stageName: { fontFamily: typography.title, fontSize: 13, color: colors.parchment, fontWeight: '700' },
   stageDesc: { fontFamily: typography.body, fontSize: 12, color: colors.muted, marginTop: 2 },
+
+  // ── StagesTab ──────────────────────────────────────────────────────────────
+  stageCard: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+    backgroundColor: colors.deep, borderRadius: 10,
+    borderWidth: 1, borderColor: colors.border2,
+    padding: 14, marginBottom: 10,
+  },
+  stageIndexBadge: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: 'rgba(201,168,76,0.15)',
+    borderWidth: 1, borderColor: colors.border2,
+    alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
+  },
+  stageIndexText: { fontFamily: typography.title, fontSize: 12, color: colors.gold2, fontWeight: '700' },
+
+  // ── Journaux MJ ───────────────────────────────────────────────────────────
+  gmJournalCard: {
+    borderColor: 'rgba(201,168,76,0.35)',
+    backgroundColor: 'rgba(201,168,76,0.04)',
+  },
+  gmJournalTitle: {
+    fontFamily: typography.title, fontSize: 14, color: colors.gold2,
+    fontWeight: '700', marginBottom: 6,
+  },
 });

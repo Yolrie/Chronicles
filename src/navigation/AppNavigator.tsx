@@ -38,7 +38,7 @@ export type CampaignsStackParamList = {
   CampaignsList: undefined;
   CampaignForm: undefined;
   CampaignDetail: { campaignId: string };
-  SessionLogForm: { campaignId: string };
+  SessionLogForm: { campaignId: string; isGMJournal?: boolean };
   SessionSchedule: { campaignId: string };
 };
 
