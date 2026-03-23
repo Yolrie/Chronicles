@@ -121,15 +121,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!user) return null;
     set({ saving: true, error: null });
     try {
-      // Lit le fichier local comme blob
+      // Lit le fichier local comme ArrayBuffer (compatible iOS + Android)
       const response = await fetch(localUri);
-      const blob = await response.blob();
+      const arrayBuffer = await response.arrayBuffer();
       const ext = localUri.split('.').pop()?.toLowerCase().split('?')[0] ?? 'jpg';
-      const path = `${user.id}.${ext}`;
+      const mimeType = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
+      const path = `avatars/${user.id}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(path, blob, { upsert: true, contentType: `image/${ext}` });
+        .upload(path, arrayBuffer, { upsert: true, contentType: mimeType });
 
       if (uploadError) {
         set({ saving: false, error: uploadError.message });

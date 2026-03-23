@@ -105,9 +105,10 @@ export interface CampaignPlayer {
 export interface SessionLog {
   id: string;
   campaign_id: string;
-  character_id: string;
+  character_id?: string;   // optionnel pour les journaux MJ
   player_id: string;
   session_date: string;
+  title?: string;          // titre de la session (journal MJ)
   xp_gained: number;
   gold_changed: number;
   items_gained?: string[];
@@ -115,6 +116,7 @@ export interface SessionLog {
   hp_current?: number;
   spells_used?: string[];
   notes?: string;
+  is_gm_journal?: boolean; // true = journal narratif MJ
   status: 'pending' | 'approved' | 'rejected';
   reviewed_by?: string;
   reviewed_at?: string;

@@ -127,7 +127,7 @@ const HomeScreen: React.FC = () => {
 
         {/* Welcome line */}
         <View style={styles.welcomeRow}>
-          <Text style={styles.welcomeText}>{t.home.welcomeBack}, </Text>
+          <Text style={styles.welcomeText}>{t.home.welcomeBack} </Text>
           <Text style={styles.usernameText} numberOfLines={1}>{profile?.username ?? 'Adventurer'}</Text>
         </View>
 
@@ -195,14 +195,18 @@ const HomeScreen: React.FC = () => {
                 style={styles.quickCard}
                 onPress={() => navigation.navigate('CharactersTab', { screen: 'CharacterForm', params: {} })}
               >
-                <Text style={styles.quickIcon}>⚔</Text>
+                <View style={styles.quickIconBadgeCrimson}>
+                  <Text style={styles.quickIconGlyphCrimson}>†</Text>
+                </View>
                 <Text style={styles.quickLabel}>{t.home.newHero}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.quickCard, styles.quickCardGold]}
                 onPress={() => navigation.navigate('CampaignsTab', { screen: 'CampaignForm' })}
               >
-                <Text style={styles.quickIcon}>🗺</Text>
+                <View style={styles.quickIconBadgeGold}>
+                  <Text style={styles.quickIconGlyphGold}>◆</Text>
+                </View>
                 <Text style={[styles.quickLabel, { color: colors.gold2 }]}>{t.home.newCampaign}</Text>
               </TouchableOpacity>
             </View>
@@ -454,7 +458,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#09090A',
     borderColor: colors.border2,
   },
-  quickIcon: { fontSize: 24 },
+  quickIconBadgeCrimson: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(192,57,43,0.15)',
+    borderWidth: 1, borderColor: 'rgba(192,57,43,0.45)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  quickIconGlyphCrimson: {
+    fontFamily: 'Cinzel', fontSize: 20, color: colors.crimson2, lineHeight: 24,
+  },
+  quickIconBadgeGold: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(201,168,76,0.12)',
+    borderWidth: 1, borderColor: 'rgba(201,168,76,0.35)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  quickIconGlyphGold: {
+    fontFamily: 'Cinzel', fontSize: 16, color: colors.gold2, lineHeight: 22,
+  },
   quickLabel: {
     fontFamily: typography.title, fontSize: 10, color: colors.crimson2,
     textTransform: 'uppercase', letterSpacing: 0.6,

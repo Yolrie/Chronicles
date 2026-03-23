@@ -11,12 +11,15 @@ import {
   Platform,
   StyleSheet,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import * as ImagePicker from 'expo-image-picker';
 import { CharactersStackParamList } from '../navigation/AppNavigator';
 import { useCharactersStore } from '../stores/charactersStore';
 import { useCampaignsStore, CampaignRules } from '../stores/campaignsStore';
+import { useAuthStore } from '../stores/authStore';
 import { useI18n } from '../i18n';
 import { useChroniclesAlert } from '../components/AlertProvider';
 import { colors, commonStyles, typography } from '../styles/common';
@@ -119,8 +122,9 @@ const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
   const { characterId, campaignId } = route.params ?? {};
   const { t } = useI18n();
   const { showAlert } = useChroniclesAlert();
-  const { characters, loading, createCharacter, updateCharacter, deleteCharacter } = useCharactersStore();
+  const { characters, loading, createCharacter, updateCharacter, deleteCharacter, uploadCharacterAvatar } = useCharactersStore();
   const { campaigns } = useCampaignsStore();
+  const { user } = useAuthStore();
 
   const existing = characters.find(c => c.id === characterId);
   const isEdit = !!existing;
@@ -177,7 +181,35 @@ const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
   const [flaws, setFlaws] = useState(existing?.data_json?.flaws ?? '');
   const [notes, setNotes] = useState(existing?.data_json?.notes ?? '');
 
+  // ── Avatar & Campagne ──
+  const [avatarLocalUri, setAvatarLocalUri] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  // Campagne associée (peut être changée en édition)
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string | undefined>(
+    existing?.campaign_id ?? campaignId
+  );
+
+  // Campagnes où le joueur est participant (pour association)
+  const joinableCampaigns = campaigns.filter(c => c.my_role !== undefined);
+
   const [activeTab, setActiveTab] = useState<Tab>('identity');
+
+  async function handlePickAvatar() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      showAlert({ title: 'Permission requise', message: "Autorisez l'accès aux photos pour choisir un avatar.", buttons: [{ text: 'OK' }] });
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'] as any,
+      allowsEditing: true,
+      aspect: [3, 4],
+      quality: 0.75,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setAvatarLocalUri(result.assets[0].uri);
+    }
+  }
 
   const lvlNum = Math.max(1, Math.min(20, parseInt(level) || 1));
   const profBonus = Math.ceil(lvlNum / 4) + 1;
@@ -223,16 +255,28 @@ const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
       class: charClass.trim() || undefined,
       background: background.trim() || undefined,
       level: lvlNum,
-      campaign_id: campaignId,
+      campaign_id: selectedCampaignId ?? null,
       data_json,
     };
 
     if (isEdit && existing) {
       await updateCharacter(existing.id, payload);
+      // Upload avatar si changé
+      if (avatarLocalUri) {
+        setAvatarUploading(true);
+        await uploadCharacterAvatar(existing.id, avatarLocalUri);
+        setAvatarUploading(false);
+      }
       showAlert({ icon: '✓', title: t.characters.saved, message: t.characters.characterUpdated, buttons: [{ text: 'OK' }] });
     } else {
       const created = await createCharacter(payload);
       if (created) {
+        // Upload avatar si sélectionné
+        if (avatarLocalUri) {
+          setAvatarUploading(true);
+          await uploadCharacterAvatar(created.id, avatarLocalUri);
+          setAvatarUploading(false);
+        }
         showAlert({
           icon: '⚔',
           title: t.characters.forgeHero,
@@ -309,6 +353,30 @@ const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
           {activeTab === 'identity' && (
             <View>
               <FieldInput label={t.characters.characterName} value={name} onChangeText={setName} placeholder="Aria Nightwhisper..." />
+
+              {/* Sélecteur de campagne */}
+              {joinableCampaigns.length > 0 && (
+                <View style={commonStyles.fieldWrap}>
+                  <Text style={commonStyles.fieldLabel}>Campagne associée (optionnel)</Text>
+                  <View style={styles.chipRow}>
+                    <TouchableOpacity
+                      style={[styles.chip, !selectedCampaignId && styles.chipActive]}
+                      onPress={() => setSelectedCampaignId(undefined)}
+                    >
+                      <Text style={[styles.chipText, !selectedCampaignId && styles.chipTextActive]}>Aucune</Text>
+                    </TouchableOpacity>
+                    {joinableCampaigns.map(c => (
+                      <TouchableOpacity
+                        key={c.id}
+                        style={[styles.chip, selectedCampaignId === c.id && styles.chipActive]}
+                        onPress={() => setSelectedCampaignId(c.id)}
+                      >
+                        <Text style={[styles.chipText, selectedCampaignId === c.id && styles.chipTextActive]}>{c.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
 
               <View style={commonStyles.fieldWrap}>
                 <Text style={commonStyles.fieldLabel}>{t.characters.race}</Text>
@@ -409,6 +477,32 @@ const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
           {/* ── Apparence ── */}
           {activeTab === 'appearance' && (
             <View>
+              {/* Portrait du personnage */}
+              <View style={styles.avatarSection}>
+                <TouchableOpacity style={styles.avatarFrame} onPress={handlePickAvatar} activeOpacity={0.8}>
+                  {avatarLocalUri || existing?.avatar_url ? (
+                    <Image
+                      source={{ uri: avatarLocalUri ?? existing?.avatar_url }}
+                      style={styles.avatarImg}
+                    />
+                  ) : (
+                    <View style={styles.avatarPlaceholder}>
+                      <Text style={styles.avatarPlaceholderSymbol}>◉</Text>
+                      <Text style={styles.avatarPlaceholderLetter}>
+                        {name?.[0]?.toUpperCase() ?? '?'}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.avatarCameraBadge}>
+                    {avatarUploading
+                      ? <ActivityIndicator size="small" color={colors.parchment} />
+                      : <Text style={{ fontSize: 11 }}>📷</Text>
+                    }
+                  </View>
+                </TouchableOpacity>
+                <Text style={styles.avatarHint}>Portrait du personnage</Text>
+              </View>
+
               <View style={styles.rowFields}>
                 <View style={[commonStyles.fieldWrap, { flex: 1 }]}>
                   <Text style={commonStyles.fieldLabel}>{t.characters.height}</Text>
@@ -621,4 +715,29 @@ const styles = StyleSheet.create({
   },
 
   actions: { marginTop: 24, gap: 8 },
+
+  // ── Avatar personnage ──────────────────────────────────────────────────────
+  avatarSection: { alignItems: 'center', marginBottom: 20 },
+  avatarFrame: {
+    width: 96, height: 120,
+    backgroundColor: colors.deep,
+    borderRadius: 6, borderWidth: 1, borderColor: colors.border2,
+    alignItems: 'center', justifyContent: 'center',
+    overflow: 'visible', marginBottom: 8,
+  },
+  avatarImg: { width: 96, height: 120, borderRadius: 5 },
+  avatarPlaceholder: { alignItems: 'center', justifyContent: 'center', gap: 2 },
+  avatarPlaceholderSymbol: {
+    fontFamily: typography.title, fontSize: 28, color: colors.gold2, opacity: 0.5,
+  },
+  avatarPlaceholderLetter: {
+    fontFamily: typography.display, fontSize: 22, color: colors.gold2, fontWeight: '700',
+  },
+  avatarCameraBadge: {
+    position: 'absolute', bottom: -10, right: -10,
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: colors.deep, borderWidth: 1.5, borderColor: colors.border2,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  avatarHint: { fontSize: 10, color: colors.subtle, fontStyle: 'italic', letterSpacing: 0.3 },
 });
