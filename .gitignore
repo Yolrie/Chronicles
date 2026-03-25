@@ -41,3 +41,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Agent OPS — fichiers locaux de suivi (données privées, non versionnées)
+ops_metrics_history.json
+ops_budget_tracker.json
+ops_last_report.json
