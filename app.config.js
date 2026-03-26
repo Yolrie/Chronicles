@@ -128,9 +128,8 @@ export default {
 
     // ── Variables d'environnement ─────────────────────────────────────────────
     extra: {
-      supabaseUrl:     process.env.EXPO_PUBLIC_SUPABASE_URL     ?? process.env.SUPABASE_URL,
-      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY,
-      eas: { projectId: 'chronicles-app' },
+      // Clés publiques Supabase — accessibles via process.env.EXPO_PUBLIC_* dans le code
+      eas: { projectId: process.env.EAS_PROJECT_ID ?? 'chronicles-app' },
     },
   },
 };
