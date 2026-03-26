@@ -309,7 +309,7 @@ const ProfileScreen: React.FC = () => {
                 <Text style={styles.legalLink}>{t.profile.privacyPolicy}</Text>
               </TouchableOpacity>
               <Text style={{ color: colors.muted }}>·</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('Terms')}>
+              <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
                 <Text style={styles.legalLink}>{t.profile.terms}</Text>
               </TouchableOpacity>
             </View>

@@ -41,7 +41,7 @@ const SessionLogFormScreen: React.FC<Props> = ({ route, navigation }) => {
     if (availableChars.length > 0 && !characterId) {
       setCharacterId(availableChars[0].id);
     }
-  }, [availableChars.length]);
+  }, [availableChars]);
 
   async function handleSubmit() {
     if (!characterId) { Alert.alert(t.common.required, t.sessionLog.character); return; }
@@ -65,6 +65,8 @@ const SessionLogFormScreen: React.FC<Props> = ({ route, navigation }) => {
     if (log) {
       Alert.alert('', t.sessionLog.submitted);
       navigation.goBack();
+    } else {
+      Alert.alert(t.common.error, t.common.error);
     }
   }
 

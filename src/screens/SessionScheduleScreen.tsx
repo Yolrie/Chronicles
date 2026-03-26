@@ -34,7 +34,7 @@ const SessionScheduleScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<RouteProp<{ params: RouteParams }, 'params'>>();
   const { campaignId } = route.params;
-  const { createCampaignSession } = useCampaignsStore() as any;
+  const { createCampaignSession } = useCampaignsStore();
   const { t } = useI18n();
 
   const [title, setTitle] = useState('');
@@ -51,12 +51,14 @@ const SessionScheduleScreen: React.FC = () => {
 
   function buildCalendarUrl() {
     // Encodes event data into a calurl:// deep link for native calendar apps
-    const startIso = `${date}T${time || '00:00'}`.replace(/[-:]/g, '');
-    const endDate = date;
+    const startDate = new Date(`${date}T${time || '00:00'}:00`);
+    const endDate = new Date(startDate.getTime() + duration * 60 * 1000);
+    const fmt = (d: Date) =>
+      d.toISOString().replace(/[-:]/g, '').slice(0, 15);
     const params = new URLSearchParams({
       title: title || 'Session de jeu',
-      dtstart: startIso,
-      dtend: startIso,
+      dtstart: fmt(startDate),
+      dtend: fmt(endDate),
       description: description || '',
       location: isOnline ? (meetingLink || 'En ligne') : location,
     });
@@ -79,7 +81,7 @@ const SessionScheduleScreen: React.FC = () => {
 
   async function handleSubmit() {
     if (!title.trim()) {
-      Alert.alert(t.sessions.errorTitle, t.sessions.errorTitle);
+      Alert.alert(t.common.error, t.sessions.errorTitle);
       return;
     }
     if (!date.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
@@ -96,13 +98,13 @@ const SessionScheduleScreen: React.FC = () => {
       const session = await createCampaignSession({
         campaign_id: campaignId,
         title: title.trim(),
-        scheduled_date: date,
-        scheduled_time: time,
-        duration_minutes: duration,
+        scheduled_at: `${date}T${time}:00`,
+        duration_min: duration,
         description: description.trim() || undefined,
         location: location.trim() || undefined,
         is_online: isOnline,
         meeting_link: isOnline ? meetingLink.trim() || undefined : undefined,
+        status: 'scheduled',
       });
       setCreatedSession(session);
       setSubmitted(true);

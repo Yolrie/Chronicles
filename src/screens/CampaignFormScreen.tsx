@@ -34,8 +34,8 @@ const CampaignFormScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedSystem, setSelectedSystem] = useState('');
 
   useEffect(() => {
-    supabase.from('game_systems').select('*').eq('is_official', true).then(({ data }) => {
-      setGameSystems(data ?? []);
+    supabase.from('game_systems').select('*').eq('is_official', true).then(({ data, error }) => {
+      if (!error) setGameSystems(data ?? []);
     });
     return () => { clearError(); };
   }, []);

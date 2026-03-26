@@ -117,9 +117,10 @@ const FriendsScreen: React.FC = () => {
     setAddLoading(false);
 
     if (result === 'ok') {
+      const sentTo = addUsername.trim();
       setAddUsername('');
       setShowAddModal(false);
-      Alert.alert(t.friends.successSent, `${addUsername}`);
+      Alert.alert(t.friends.successSent, sentTo);
     } else if (result === 'not_found') {
       Alert.alert(t.common.error, t.friends.errorNotFound);
     } else if (result === 'already') {

@@ -186,7 +186,7 @@ const CharacterFormScreen: React.FC<Props> = ({ route, navigation }) => {
     navigation.setOptions({
       title: isEdit ? (existing?.name ?? t.characters.identity) : t.characters.forgeHero,
     });
-  }, [isEdit, existing?.name, t]);
+  }, [isEdit, existing?.name]);
 
   async function handleSave() {
     if (!name.trim()) {
