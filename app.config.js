@@ -129,9 +129,11 @@ export default {
     ],
 
     // ── EAS ───────────────────────────────────────────────────────────────────
-    // projectId sera injecté par "eas init" (UUID valide depuis expo.dev)
     extra: {
-      eas: { projectId: process.env.EAS_PROJECT_ID ?? undefined },
+      // Fallback pour les builds qui lisent encore Constants.expoConfig.extra
+      supabaseUrl:     process.env.EXPO_PUBLIC_SUPABASE_URL ?? '',
+      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '',
+      eas: { projectId: process.env.EAS_PROJECT_ID ?? '50b2edfa-1130-472d-8b34-31687b043cc6' },
     },
   },
 };
