@@ -73,9 +73,11 @@ export default {
       targetSdkVersion: 34,
 
       permissions: [
+        // Android 13+ (API 33+) — remplace READ/WRITE_EXTERNAL_STORAGE dépréciés
         'android.permission.READ_MEDIA_IMAGES',
+        // Android ≤ 12 (API ≤ 32) — gardé pour compatibilité minSdkVersion 23
         'android.permission.READ_EXTERNAL_STORAGE',
-        'android.permission.WRITE_EXTERNAL_STORAGE',
+        // WRITE_EXTERNAL_STORAGE supprimé : inutile sur Android 10+ (API 29+)
         'android.permission.CAMERA',
         'android.permission.READ_CALENDAR',
         'android.permission.WRITE_CALENDAR',
