@@ -126,10 +126,10 @@ export default {
       'expo-secure-store',
     ],
 
-    // ── Variables d'environnement ─────────────────────────────────────────────
+    // ── EAS ───────────────────────────────────────────────────────────────────
+    // projectId sera injecté par "eas init" (UUID valide depuis expo.dev)
     extra: {
-      // Clés publiques Supabase — accessibles via process.env.EXPO_PUBLIC_* dans le code
-      eas: { projectId: process.env.EAS_PROJECT_ID ?? 'chronicles-app' },
+      eas: { projectId: process.env.EAS_PROJECT_ID ?? undefined },
     },
   },
 };
